@@ -11,9 +11,9 @@
 #define MAX_PATH 1024
 // Разделители путей в различных системах
 #ifdef _WIN32
-#define PATH_JOIN_SEPERATOR   "\\"
+#define PATH_JOIN_SEPARATOR   "\\"
 #else
-#define PATH_JOIN_SEPERATOR   "/"
+#define PATH_JOIN_SEPARATOR   "/"
 #endif
 
 bool startsWith(const char* pre, const char* str)
@@ -44,12 +44,12 @@ char* path_join(const char* dir, const char* file) {
 	strcpy(buf, dir);
 
 	// add the sep if necessary
-	if (!endsWith(dir, PATH_JOIN_SEPERATOR)) {
-		strcat(buf, PATH_JOIN_SEPERATOR);
+	if (!endsWith(dir, PATH_JOIN_SEPARATOR)) {
+		strcat(buf, PATH_JOIN_SEPARATOR);
 	}
 
 	// remove the sep if necessary
-	if (startsWith(file, PATH_JOIN_SEPERATOR)) {
+	if (startsWith(file, PATH_JOIN_SEPARATOR)) {
 		char* filecopy = _strdup(file);
 		if (NULL == filecopy) {
 			free(buf);
