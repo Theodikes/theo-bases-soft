@@ -3,9 +3,18 @@
 #include <malloc.h>
 #include <stdbool.h>
 #include "argparse.h"
+#include <Windows.h>
 
 // Переменная для небольших положительных числовых значений, влезающих в байт памяти
 #define ushortest unsigned char
+// Максимальная длина пути к файлу в Windows
+#define MAX_PATH 1024
+// Разделители путей в различных системах
+#ifdef _WIN32
+#define PATH_JOIN_SEPERATOR   "\\"
+#else
+#define PATH_JOIN_SEPERATOR   "/"
+#endif
 
 bool startsWith(const char* pre, const char* str)
 {
@@ -27,11 +36,6 @@ bool endsWith(const char* str, const char* suffix)
 
 // Функция для объединения абсолютного пути к папке и имени файла в абсолютный путь к файлу
 char* path_join(const char* dir, const char* file) {
-	#ifdef _WIN32
-	#define PATH_JOIN_SEPERATOR   "\\"
-	#else
-	#define PATH_JOIN_SEPERATOR   "/"
-	#endif
 
 	size_t size = strlen(dir) + strlen(file) + 2;
 	char* buf =(char* ) malloc(size * sizeof(char));
@@ -67,6 +71,42 @@ char* getFilenameFromPath(char* pathToFile) {
 
 	return fileNameWithExtension;
 }
+
+char** getDirectoryTextFilesList(const char* dirPath, unsigned short* filesCount)
+{
+	char** textFilesInDirectory = (char**)malloc(1024 * sizeof(char*));
+	WIN32_FIND_DATA fdFile;
+	HANDLE hFind = NULL;
+
+	char sPath[2048];
+	sprintf(sPath, "%s\\*.txt", dirPath);
+
+	if ((hFind = FindFirstFile(sPath, &fdFile)) == INVALID_HANDLE_VALUE)
+	{
+		printf("Path to directory not found: %s\n", dirPath);
+		return false;
+	}
+
+	do
+	{
+		if (strcmp(fdFile.cFileName, ".") != 0
+			&& strcmp(fdFile.cFileName, "..") != 0) {
+			char* baseFilePath = (char*)malloc(MAX_PATH * sizeof(char));
+			if (baseFilePath == NULL) {
+				puts("Cannot allocate memory to base file path string");
+				exit(1);
+			}
+			strcpy(baseFilePath, path_join(dirPath, fdFile.cFileName));
+			*(textFilesInDirectory + *filesCount) = baseFilePath;
+			(*filesCount)++;
+		}
+	} while (FindNextFile(hFind, &fdFile));
+
+	FindClose(hFind);
+
+	return textFilesInDirectory;
+}
+
 
 /* Функция для получения имени файла без расширения .txt из абсолютного пути. 
 *Используется, чтобы получить чистое название файла и к нему можно было что-нибудь добавлять.
@@ -153,16 +193,20 @@ static const char* const usages[] = {
 void main(int argc, char* argv[]) {
 
 	char* pathToResultFolder = NULL;
+	char* pathToSourceFolder = NULL;
 	int minPasswordLength = 1;
 	int maxPasswordLength = 256;
+	unsigned short sourceFilesCount = 0;
+	char** sourceFiles = NULL;
 
 	struct argparse_option options[] = {
 		OPT_HELP(),
 		OPT_GROUP("Basic options"),
+		OPT_STRING('s', "source", &pathToSourceFolder, "absolute or relative path to folder with text bases", NULL, 0, 0),
 		OPT_STRING('d', "destination", &pathToResultFolder, "absolute or relative path to result folder", NULL, 0, 0),
 		OPT_INTEGER('m', "min", &minPasswordLength, "minimum password length", NULL, 0, 0),
 		OPT_INTEGER('M', "max", &maxPasswordLength, "maximum password length", NULL, 0, 0),
-		OPT_GROUP("All unmarked arguments are considered paths to files with bases that need to be normalized"),
+		OPT_GROUP("All unmarked arguments are considered paths to files with bases that need to be normalized. \nIf parameter 'source' is specified, all these files would be ignored"),
 		OPT_END(),
 	};
 	struct argparse argparse;
@@ -170,7 +214,17 @@ void main(int argc, char* argv[]) {
 	argparse_describe(&argparse, "\nA brief description of what the program does and how it works.", "\nAdditional description of the program after the description of the arguments.");
 	int remainingArgumentsCount = argparse_parse(&argparse, argc, argv);
 
-	if (remainingArgumentsCount == 0) {
+	// Если пользователем указан путь к папке, откуда надо брать базы для нормализации, и там они есть - нормализуем их
+	if (pathToSourceFolder != NULL) {
+		sourceFiles = getDirectoryTextFilesList(pathToSourceFolder, &sourceFilesCount);
+	}
+	if (sourceFilesCount == 0) {
+		sourceFiles = argv;
+		sourceFilesCount = remainingArgumentsCount;
+	}
+	
+
+	if (sourceFilesCount == 0) {
 		puts("Error: paths to bases not specified");
 		return;
 	}
@@ -181,9 +235,9 @@ void main(int argc, char* argv[]) {
 		return;
 	}
 	
+	for (int i = 0; i < sourceFilesCount; i++) {
+		char* pathToBaseFile = sourceFiles[i];
 
-	for (int i = 0; i < remainingArgumentsCount; i++) {
-		char* pathToBaseFile = argv[i];
 		if (!endsWith(pathToBaseFile, ".txt")) {
 			printf("Wrong path: Base must be a .txt file, but got %s\nFile %s has skipped.\n", pathToBaseFile, pathToBaseFile);
 			continue;
@@ -212,5 +266,5 @@ void main(int argc, char* argv[]) {
 		fclose(normalizedBaseFilePtr);
 	}
 
-	printf("\n\nBases normalized successfully\n\n");
+	printf("\n\nBases normalized successfully!\n\n");
 }
