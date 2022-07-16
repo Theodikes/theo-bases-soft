@@ -201,9 +201,9 @@ void main(int argc, char* argv[]) {
 
 		/* Читаем весь файл построчно и проверяем каждую строку на соответствие заданным условиям, 
 		если соответствует - записываем в итоговый файл с нормализованной базой */
-		char str[256];
+		char str[1024];
 		while (!feof(baseFilePointer)) {
-			if (fgets(str, 255, baseFilePointer) != NULL) {
+			if (fgets(str, 1023, baseFilePointer) != NULL) {
 				if(isBaseStringSatisfyingConditions(str, minPasswordLength, maxPasswordLength)) fputs(str, normalizedBaseFilePtr);
 			}
 		}
