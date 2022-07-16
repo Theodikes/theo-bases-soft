@@ -72,6 +72,9 @@ char* getFilenameFromPath(char* pathToFile) {
 	return fileNameWithExtension;
 }
 
+/* Возвращает массив, содержащий пути ко всем txt - файлам в указанной директории.
+Кроме того, меняет значение переменной filesCount по указателю, чтобы вне функции стало известно, сколько всего
+в возвращенном массиве элементов (указателей на строки, каждая строка - путь к файлу для нормализации). */
 char** getDirectoryTextFilesList(const char* dirPath, unsigned short* filesCount)
 {
 	char** textFilesInDirectory = (char**)malloc(1024 * sizeof(char*));
@@ -131,10 +134,9 @@ char* getFileNameWithoutTxtExtension(char* pathToFile) {
 	return fileName;
 }
 
-FILE* getNormalizedBaseFilePtr(char*pathToResultFolder, char* pathToBaseFile) {
+FILE* getNormalizedBaseFilePtr(char*pathToResultFolder, char* pathToBaseFile, int fileNumber) {
 	char resultFileName[256];
-	strcpy(resultFileName, getFileNameWithoutTxtExtension(pathToBaseFile));
-	strcat(resultFileName, "_normalized.txt");
+	sprintf(resultFileName, "%s_normalized_%d.txt", getFileNameWithoutTxtExtension(pathToBaseFile), fileNumber);
 	char* resultFilePath = path_join(pathToResultFolder, resultFileName);
 	FILE* normalizedBaseFilePtr = fopen(resultFilePath, "w+");
 	if (normalizedBaseFilePtr == NULL) {
@@ -206,7 +208,7 @@ void main(int argc, char* argv[]) {
 		OPT_STRING('d', "destination", &pathToResultFolder, "absolute or relative path to result folder", NULL, 0, 0),
 		OPT_INTEGER('m', "min", &minPasswordLength, "minimum password length", NULL, 0, 0),
 		OPT_INTEGER('M', "max", &maxPasswordLength, "maximum password length", NULL, 0, 0),
-		OPT_GROUP("All unmarked arguments are considered paths to files with bases that need to be normalized. \nIf parameter 'source' is specified, all these files would be ignored"),
+		OPT_GROUP("All unmarked arguments are considered paths to files with bases that need to be normalized. \nYou can combine this files and flag 'source' with directory"),
 		OPT_END(),
 	};
 	struct argparse argparse;
@@ -217,10 +219,14 @@ void main(int argc, char* argv[]) {
 	// Если пользователем указан путь к папке, откуда надо брать базы для нормализации, и там они есть - нормализуем их
 	if (pathToSourceFolder != NULL) {
 		sourceFiles = getDirectoryTextFilesList(pathToSourceFolder, &sourceFilesCount);
+		for (int i = 0; i < remainingArgumentsCount; i++) {
+			sourceFiles[sourceFilesCount + i] = argv[i];
+		}
+		sourceFilesCount += argc;
 	}
 	if (sourceFilesCount == 0) {
-		sourceFiles = argv;
 		sourceFilesCount = remainingArgumentsCount;
+		sourceFiles = argv;
 	}
 	
 
@@ -249,7 +255,7 @@ void main(int argc, char* argv[]) {
 			continue;
 		}
 
-		FILE* normalizedBaseFilePtr = getNormalizedBaseFilePtr(pathToResultFolder, pathToBaseFile);
+		FILE* normalizedBaseFilePtr = getNormalizedBaseFilePtr(pathToResultFolder, pathToBaseFile, i);
 		if (normalizedBaseFilePtr == NULL) continue;
 		
 
