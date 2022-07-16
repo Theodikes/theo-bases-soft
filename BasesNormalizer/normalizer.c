@@ -83,7 +83,7 @@ char** getDirectoryTextFilesList(const char* dirPath, unsigned short* filesCount
 
 	if ((hFind = FindFirstFile(sPath, &fdFile)) == INVALID_HANDLE_VALUE)
 	{
-		printf("Path to directory not found: %s\n", dirPath);
+		printf("Path to directory not found: [%s]\n", dirPath);
 		return false;
 	}
 
@@ -138,7 +138,7 @@ FILE* getNormalizedBaseFilePtr(char*pathToResultFolder, char* pathToBaseFile) {
 	char* resultFilePath = path_join(pathToResultFolder, resultFileName);
 	FILE* normalizedBaseFilePtr = fopen(resultFilePath, "w+");
 	if (normalizedBaseFilePtr == NULL) {
-		printf("Cannot create file for normalized base by path: %s\n", resultFilePath);
+		printf("Cannot create file for normalized base by path: [%s]\n", resultFilePath);
 	}
 	return normalizedBaseFilePtr;
 }
@@ -239,13 +239,13 @@ void main(int argc, char* argv[]) {
 		char* pathToBaseFile = sourceFiles[i];
 
 		if (!endsWith(pathToBaseFile, ".txt")) {
-			printf("Wrong path: Base must be a .txt file, but got %s\nFile %s has skipped.\n", pathToBaseFile, pathToBaseFile);
+			printf("Wrong path: Base must be a .txt file, but got [%s]\nFile [%s] has skipped.\n", pathToBaseFile, pathToBaseFile);
 			continue;
 		}
 
 		FILE* baseFilePointer = fopen(pathToBaseFile, "r");
 		if (baseFilePointer == NULL) {
-			printf("File is skipped. Cannot open %s because of invalid path or due to security policy reasons.\n", pathToBaseFile);
+			printf("File is skipped. Cannot open [%s] because of invalid path or due to security policy reasons.\n", pathToBaseFile);
 			continue;
 		}
 
