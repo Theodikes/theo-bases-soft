@@ -138,7 +138,7 @@ FILE* getNormalizedBaseFilePtr(char*pathToResultFolder, char* pathToBaseFile, in
 	char resultFileName[256];
 	sprintf(resultFileName, "%s_normalized_%d.txt", getFileNameWithoutTxtExtension(pathToBaseFile), fileNumber);
 	char* resultFilePath = path_join(pathToResultFolder, resultFileName);
-	FILE* normalizedBaseFilePtr = fopen(resultFilePath, "w+");
+	FILE* normalizedBaseFilePtr = fopen(resultFilePath, "wb+");
 	if (normalizedBaseFilePtr == NULL) {
 		printf("Cannot create file for normalized base by path: [%s]\n", resultFilePath);
 	}
@@ -267,7 +267,7 @@ void main(int argc, char* argv[]) {
 			continue;
 		}
 
-		FILE* baseFilePointer = fopen(pathToBaseFile, "r");
+		FILE* baseFilePointer = fopen(pathToBaseFile, "rb");
 		if (baseFilePointer == NULL) {
 			printf("File is skipped. Cannot open [%s] because of invalid path or due to security policy reasons.\n", pathToBaseFile);
 			continue;
