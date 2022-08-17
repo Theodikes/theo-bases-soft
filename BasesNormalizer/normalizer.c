@@ -2,7 +2,8 @@
 #include <string.h>
 #include <malloc.h>
 #include <stdbool.h>
-#include "argparse.h"
+#include "libs/argparse/argparse.h" // https://github.com/cofyc/argparse
+#include "libs/tiny-regex/re.h" // https://github.com/kokke/tiny-regex-c
 #include <Windows.h>
 
 // Переменная для небольших положительных числовых значений, влезающих в байт памяти
