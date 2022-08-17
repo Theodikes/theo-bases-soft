@@ -147,38 +147,54 @@ FILE* getNormalizedBaseFilePtr(char*pathToResultFolder, char* pathToBaseFile, in
 
 /*Функция проверяет строку из базы на соответствие требуемым параметрам. Строка должна содержать валидный емейл,
 разделитель ":" и пароль, длина которого находится в заданном диапазоне. */
-bool isBaseStringSatisfyingConditions(char* string, int minPasswordLength, int maxPasswordLength) {
+bool isBaseStringSatisfyingConditions(char* string, int minPasswordLength, int maxPasswordLength, bool checkAscii) {
 	bool hasDelimeter = false;
 	bool hasEmailSign = false;
-	ushortest emailSignNumber = 0;
+	bool hasDotAfterEmailsSign = false; // Есть ли точка в емейле после символа '@'
+	ushortest emailSignNumber = 0; // Количество символов '@' в емейле (если больше одного - невалидный)
 	ushortest dotsNumber = 0;
-	char currentSymbol;
+	char currentSymbol; // Временная переменная для работы посимвольной работы со строкой
+	ushortest stringLength = strlen(string);
+	
+	if (stringLength > 80 || stringLength < 15) return false;
 
-	ushortest i;
-	for (i = 0; currentSymbol = string[i]; i++) {
+	// Если стоит флаг checkAscii, то все строки, в которых есть символы кроме английских букв, цифр и пунктуации - невалидны
+	if (checkAscii) {
+		for (ushortest i = 0; currentSymbol = string[i]; i++) {
+			/* Если это командный символ, то есть имеет код от 0 до 31 или от 127 до 255, и при этом
+			* это не символ с кодом 10(символ переноса строки, '\n') и не символ с кодом 13 (символ возврата каретки, '\r'),
+			* то строка не является валидной строкой английского ascii и должна быть пропущена */
+			if ((currentSymbol < 31 || currentSymbol > 126) && currentSymbol != 10 && currentSymbol != 13) return false;
+		}
+	}
+
+	ushortest emailLength = 0;
+	for (; currentSymbol = string[emailLength]; emailLength++) {
 		if (currentSymbol == ':') {
 			hasDelimeter = true;
 			break;
 		}
 		if (currentSymbol == ';') {
 			hasDelimeter = true;
-			string[i] = ':';
+			string[emailLength] = ':';
 			break;
 		}
 		if (currentSymbol == '@') {
 			emailSignNumber++;
 			hasEmailSign = true;
 		}
-		if (currentSymbol == '.' && hasEmailSign) dotsNumber++;
+		if (currentSymbol == '.' && hasEmailSign) hasDotAfterEmailsSign = true;
 	}
+	/* Если емейл неадекватной длины, настолько, что похож на случайную строку, в которой присутствует символ '@' и '.',
+	* игнорируем его */
+	if (emailLength < 8 || emailLength > 50) return false;
 
-	if (minPasswordLength > 1 || maxPasswordLength < 256) {
-		char* passwordStartPointer = &string[i + 1];
-		int passwordLength = (int)strlen(passwordStartPointer);
-		if (passwordLength < minPasswordLength || passwordLength > maxPasswordLength) return false;
-	}
+	// Начинаем считать длину пароля с конца емела
+	char* passwordStartPointer = &string[emailLength + 1];
+	int passwordLength = (int)strlen(passwordStartPointer);
+	if (passwordLength < minPasswordLength || passwordLength > maxPasswordLength) return false;
 
-	if (hasEmailSign && hasDelimeter && emailSignNumber == 1 && dotsNumber > 0) {
+	if (hasEmailSign && hasDelimeter && emailSignNumber == 1 && hasDotAfterEmailsSign) {
 		return true;
 	}
 
@@ -196,8 +212,9 @@ void main(int argc, char* argv[]) {
 
 	char* pathToResultFolder = NULL;
 	char* pathToSourceFolder = NULL;
-	int minPasswordLength = 1;
-	int maxPasswordLength = 256;
+	int minPasswordLength = 3;
+	int maxPasswordLength = 40; // Все строки с паролем длиннее будут игнорироваться
+	int checkAscii = false; // На самом деле bool...
 	unsigned short sourceFilesCount = 0;
 	char** sourceFiles = NULL;
 
@@ -208,6 +225,7 @@ void main(int argc, char* argv[]) {
 		OPT_STRING('d', "destination", &pathToResultFolder, "absolute or relative path to result folder", NULL, 0, 0),
 		OPT_INTEGER('m', "min", &minPasswordLength, "minimum password length", NULL, 0, 0),
 		OPT_INTEGER('M', "max", &maxPasswordLength, "maximum password length", NULL, 0, 0),
+		OPT_BOOLEAN("ca", "check-ascii", &checkAscii, "ignore strings with invalid ascii characters", NULL, 0, 0),
 		OPT_GROUP("All unmarked arguments are considered paths to files with bases that need to be normalized. \nYou can combine this files and flag 'source' with directory"),
 		OPT_END(),
 	};
@@ -263,7 +281,7 @@ void main(int argc, char* argv[]) {
 		если соответствует - записываем в итоговый файл с нормализованной базой */
 		char str[1024];
 		while (fgets(str, 1023, baseFilePointer)) {
-			if(isBaseStringSatisfyingConditions(str, minPasswordLength, maxPasswordLength)) fputs(str, normalizedBaseFilePtr);
+			if(isBaseStringSatisfyingConditions(str, minPasswordLength, maxPasswordLength, checkAscii)) fputs(str, normalizedBaseFilePtr);
 		}
 		
 		fclose(baseFilePointer);
