@@ -1,77 +1,5 @@
-﻿#include <stdio.h>
-#include <string.h>
-#include <malloc.h>
-#include <stdbool.h>
-#include "libs/argparse/argparse.h" // https://github.com/cofyc/argparse
-#include "libs/tiny-regex/re.h" // https://github.com/kokke/tiny-regex-c
-#include <Windows.h>
+﻿#include "utils.h"
 
-// Переменная для небольших положительных числовых значений, влезающих в байт памяти
-#define ushortest unsigned char
-// Максимальная длина пути к файлу в Windows
-#define MAX_PATH 1024
-// Разделители путей в различных системах
-#ifdef _WIN32
-#define PATH_JOIN_SEPARATOR   "\\"
-#else
-#define PATH_JOIN_SEPARATOR   "/"
-#endif
-
-bool startsWith(const char* pre, const char* str)
-{
-	size_t lenpre = strlen(pre),
-		lenstr = strlen(str);
-	return lenstr < lenpre ? false : memcmp(pre, str, lenpre) == 0;
-}
-
-bool endsWith(const char* str, const char* suffix)
-{
-	if (!str || !suffix)
-		return 0;
-	size_t lenstr = strlen(str);
-	size_t lensuffix = strlen(suffix);
-	if (lensuffix > lenstr)
-		return 0;
-	return strncmp(str + lenstr - lensuffix, suffix, lensuffix) == 0;
-}
-
-// Функция для объединения абсолютного пути к папке и имени файла в абсолютный путь к файлу
-char* path_join(const char* dir, const char* file) {
-
-	size_t size = strlen(dir) + strlen(file) + 2;
-	char* buf =(char* ) malloc(size * sizeof(char));
-	if (NULL == buf) return NULL;
-
-	strcpy(buf, dir);
-
-	// add the sep if necessary
-	if (!endsWith(dir, PATH_JOIN_SEPARATOR)) {
-		strcat(buf, PATH_JOIN_SEPARATOR);
-	}
-
-	// remove the sep if necessary
-	if (startsWith(file, PATH_JOIN_SEPARATOR)) {
-		char* filecopy = _strdup(file);
-		if (NULL == filecopy) {
-			free(buf);
-			return NULL;
-		}
-		strcat(buf, ++filecopy);
-		free(--filecopy);
-	}
-	else {
-		strcat(buf, file);
-	}
-
-	return buf;
-}
-
-char* getFilenameFromPath(char* pathToFile) {
-	char* fileNameWithExtension;
-	(fileNameWithExtension = strrchr(pathToFile, '\\')) ? ++fileNameWithExtension : (fileNameWithExtension = pathToFile);
-
-	return fileNameWithExtension;
-}
 
 /* Возвращает массив, содержащий пути ко всем txt - файлам в указанной директории.
 Кроме того, меняет значение переменной filesCount по указателю, чтобы вне функции стало известно, сколько всего
@@ -225,6 +153,7 @@ static const char* const usages[] = {
 void main(int argc, char* argv[]) {
 
 	char* pathToResultFolder = NULL;
+	FILE* mergedResultFile = NULL;
 	char* pathToSourceFolder = NULL;
 	char* emailRegexString = NULL;
 	char* passwordRegexString = NULL;
@@ -233,7 +162,8 @@ void main(int argc, char* argv[]) {
 	int minPasswordLength = 3;
 	int maxPasswordLength = 40; // Все строки с паролем длиннее будут игнорироваться
 	int checkAscii = false; // На самом деле bool...
-	unsigned short sourceFilesCount = 0;
+	int needMerge = false; // Тоже bool
+	unsigned short sourceFilesCount = 0; // Количество файлов, которые будут нормализоваться
 	char** sourceFiles = NULL;
 
 	struct argparse_option options[] = {
@@ -243,9 +173,10 @@ void main(int argc, char* argv[]) {
 		OPT_STRING('d', "destination", &pathToResultFolder, "absolute or relative path to result folder", NULL, 0, 0),
 		OPT_STRING('e', "email-regex", &emailRegexString, "Regular expression for filtering emails (up to 30 characters)", NULL, 0, 0),
 		OPT_STRING('p', "password-regex", &passwordRegexString, "Regular expression for filtering passwords (up to 30 characters)", NULL, 0, 0),
-		OPT_INTEGER('m', "min", &minPasswordLength, "minimum password length", NULL, 0, 0),
-		OPT_INTEGER('M', "max", &maxPasswordLength, "maximum password length", NULL, 0, 0),
+		OPT_INTEGER(0, "min", &minPasswordLength, "minimum password length", NULL, 0, 0),
+		OPT_INTEGER(0, "max", &maxPasswordLength, "maximum password length", NULL, 0, 0),
 		OPT_BOOLEAN('a', "check-ascii", &checkAscii, "ignore strings with invalid ascii characters", NULL, 0, 0),
+		OPT_BOOLEAN('m', "merge", &needMerge, "merge strings from all normalized files to one file ('merged.txt')", NULL, 0, 0),
 		OPT_GROUP("All unmarked arguments are considered paths to files with bases that need to be normalized. \nYou can combine this files and flag 'source' with directory"),
 		OPT_END(),
 	};
@@ -260,7 +191,7 @@ void main(int argc, char* argv[]) {
 		for (int i = 0; i < remainingArgumentsCount; i++) {
 			sourceFiles[sourceFilesCount + i] = argv[i];
 		}
-		sourceFilesCount += argc;
+		sourceFilesCount += remainingArgumentsCount;
 	}
 	if (sourceFilesCount == 0) {
 		sourceFilesCount = remainingArgumentsCount;
@@ -296,6 +227,8 @@ void main(int argc, char* argv[]) {
 			exit(1);
 		}
 	}
+
+	if (needMerge) mergedResultFile = fopen(path_join(pathToResultFolder, "merged.txt"), "wb+");
 	
 	for (int i = 0; i < sourceFilesCount; i++) {
 		char* pathToBaseFile = sourceFiles[i];
@@ -313,18 +246,18 @@ void main(int argc, char* argv[]) {
 
 		FILE* normalizedBaseFilePtr = getNormalizedBaseFilePtr(pathToResultFolder, pathToBaseFile, i);
 		if (normalizedBaseFilePtr == NULL) continue;
-		
 
 		/* Читаем весь файл построчно и проверяем каждую строку на соответствие заданным условиям, 
 		если соответствует - записываем в итоговый файл с нормализованной базой */
 		char str[1024];
 		while (fgets(str, 1023, baseFilePointer)) {
-			if(isBaseStringSatisfyingConditions(str, minPasswordLength, maxPasswordLength, checkAscii, emailRegexPattern, passwordRegexPattern)) fputs(str, normalizedBaseFilePtr);
+			if(isBaseStringSatisfyingConditions(str, minPasswordLength, maxPasswordLength, checkAscii, emailRegexPattern, passwordRegexPattern)) fputs(str, mergedResultFile);
 		}
 		
 		fclose(baseFilePointer);
-		fclose(normalizedBaseFilePtr);
+		if (!mergedResultFile) fclose(normalizedBaseFilePtr);
 	}
+	if (mergedResultFile) fclose(mergedResultFile);
 
 	printf("\n\nBases normalized successfully!\n\n");
 }
