@@ -148,13 +148,14 @@ FILE* getNormalizedBaseFilePtr(char*pathToResultFolder, char* pathToBaseFile, in
 
 /*Функция проверяет строку из базы на соответствие требуемым параметрам. Строка должна содержать валидный емейл,
 разделитель ":" и пароль, длина которого находится в заданном диапазоне. */
-bool isBaseStringSatisfyingConditions(char* string, int minPasswordLength, int maxPasswordLength, bool checkAscii) {
+bool isBaseStringSatisfyingConditions(char* string, int minPasswordLength, int maxPasswordLength, bool checkAscii, re_t emailRegex, re_t passwordRegex) {
 	bool hasDelimeter = false;
 	bool hasEmailSign = false;
 	bool hasDotAfterEmailsSign = false; // Есть ли точка в емейле после символа '@'
 	ushortest emailSignNumber = 0; // Количество символов '@' в емейле (если больше одного - невалидный)
 	ushortest dotsNumber = 0;
 	char currentSymbol; // Временная переменная для работы посимвольной работы со строкой
+	bool hasRegexpMatched = false; // Подошла ли строка под регулярку пользователя
 	ushortest stringLength = strlen(string);
 	
 	if (stringLength > 80 || stringLength < 15) return false;
@@ -195,11 +196,23 @@ bool isBaseStringSatisfyingConditions(char* string, int minPasswordLength, int m
 	int passwordLength = (int)strlen(passwordStartPointer);
 	if (passwordLength < minPasswordLength || passwordLength > maxPasswordLength) return false;
 
-	if (hasEmailSign && hasDelimeter && emailSignNumber == 1 && hasDotAfterEmailsSign) {
-		return true;
+	if (!hasEmailSign || !hasDelimeter || emailSignNumber != 1 || !hasDotAfterEmailsSign) return false;
+	
+	if (emailRegex != NULL) {
+		char* email = (char*)malloc(sizeof(char) * (emailLength + 1));
+		memcpy(email, string, emailLength);
+		email[emailLength] = '\0';
+		int _ = re_matchp(emailRegex, email, &hasRegexpMatched);
+		free(email);
+		if (!hasRegexpMatched) return false;
 	}
 
-	return false;
+	if (passwordRegex != NULL) {
+		int _ = re_matchp(emailRegex, passwordStartPointer, &hasRegexpMatched);
+		if (!hasRegexpMatched) return false;
+	}
+
+	return true;
 }
 
 // Опции для ввода аргументов вызова программы из cmd, показыаемые пользователю при использовании флага --help или -h
@@ -213,6 +226,10 @@ void main(int argc, char* argv[]) {
 
 	char* pathToResultFolder = NULL;
 	char* pathToSourceFolder = NULL;
+	char* emailRegexString = NULL;
+	char* passwordRegexString = NULL;
+	re_t emailRegexPattern = NULL;
+	re_t passwordRegexPattern = NULL;
 	int minPasswordLength = 3;
 	int maxPasswordLength = 40; // Все строки с паролем длиннее будут игнорироваться
 	int checkAscii = false; // На самом деле bool...
@@ -224,9 +241,11 @@ void main(int argc, char* argv[]) {
 		OPT_GROUP("Basic options"),
 		OPT_STRING('s', "source", &pathToSourceFolder, "absolute or relative path to folder with text bases", NULL, 0, 0),
 		OPT_STRING('d', "destination", &pathToResultFolder, "absolute or relative path to result folder", NULL, 0, 0),
+		OPT_STRING('e', "email-regex", &emailRegexString, "Regular expression for filtering emails (up to 30 characters)", NULL, 0, 0),
+		OPT_STRING('p', "password-regex", &passwordRegexString, "Regular expression for filtering passwords (up to 30 characters)", NULL, 0, 0),
 		OPT_INTEGER('m', "min", &minPasswordLength, "minimum password length", NULL, 0, 0),
 		OPT_INTEGER('M', "max", &maxPasswordLength, "maximum password length", NULL, 0, 0),
-		OPT_BOOLEAN("ca", "check-ascii", &checkAscii, "ignore strings with invalid ascii characters", NULL, 0, 0),
+		OPT_BOOLEAN('a', "check-ascii", &checkAscii, "ignore strings with invalid ascii characters", NULL, 0, 0),
 		OPT_GROUP("All unmarked arguments are considered paths to files with bases that need to be normalized. \nYou can combine this files and flag 'source' with directory"),
 		OPT_END(),
 	};
@@ -251,13 +270,31 @@ void main(int argc, char* argv[]) {
 
 	if (sourceFilesCount == 0) {
 		puts("Error: paths to bases not specified");
-		return;
+		exit(1);
 	}
 
 
 	if (pathToResultFolder == NULL) {
 		puts("Error: path to result directory not specified in args");
-		return;
+		exit(1);
+	}
+
+	if (emailRegexString != NULL) {
+		emailRegexPattern = re_compile(emailRegexString);
+
+		if (emailRegexPattern == NULL) {
+			puts("Error: invalid email regular expression");
+			exit(1);
+		}
+	}
+
+	if (passwordRegexString != NULL) {
+		passwordRegexPattern = re_compile(passwordRegexString);
+
+		if (passwordRegexPattern == NULL) {
+			puts("Error: invalid password regular expression");
+			exit(1);
+		}
 	}
 	
 	for (int i = 0; i < sourceFilesCount; i++) {
@@ -282,7 +319,7 @@ void main(int argc, char* argv[]) {
 		если соответствует - записываем в итоговый файл с нормализованной базой */
 		char str[1024];
 		while (fgets(str, 1023, baseFilePointer)) {
-			if(isBaseStringSatisfyingConditions(str, minPasswordLength, maxPasswordLength, checkAscii)) fputs(str, normalizedBaseFilePtr);
+			if(isBaseStringSatisfyingConditions(str, minPasswordLength, maxPasswordLength, checkAscii, emailRegexPattern, passwordRegexPattern)) fputs(str, normalizedBaseFilePtr);
 		}
 		
 		fclose(baseFilePointer);
