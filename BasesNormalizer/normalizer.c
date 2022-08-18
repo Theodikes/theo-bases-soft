@@ -155,7 +155,7 @@ bool isBaseStringSatisfyingConditions(char* string, int minPasswordLength, int m
 	ushortest emailSignNumber = 0; // Количество символов '@' в емейле (если больше одного - невалидный)
 	ushortest dotsNumber = 0;
 	char currentSymbol; // Временная переменная для работы посимвольной работы со строкой
-	bool hasRegexpMatched = false; // Подошла ли строка под регулярку пользователя
+	int hasRegexpMatched = false; // Подошла ли строка под регулярку пользователя
 	ushortest stringLength = strlen(string);
 	
 	if (stringLength > 80 || stringLength < 15) return false;
