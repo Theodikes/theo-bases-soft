@@ -1,6 +1,11 @@
 ﻿#include "utils.hpp"
 
 FILE* getNormalizedBaseFilePtr(string pathToResultFolder, string pathToBaseFile) {
+	
+	/* Поскольку могут быть файлы с одинаковыми названиями из разных директорий, выбираем имя итогового, 
+	нормализованного файла, пока не найдём незанятое (допустим, если нормализуется два файла из разных директорий с
+	совпадающими именами, предположим, base1/test.txt и base2/test.txt, первый будет положен в итоговую директорию
+	как test_normalized_1.txt, а второй как test_normalized_2.txt)*/
 	fs::path resultFilePath;
 	size_t i = 1;
 	do {
@@ -8,6 +13,7 @@ FILE* getNormalizedBaseFilePtr(string pathToResultFolder, string pathToBaseFile)
 		resultFilePath = fs::path(pathToResultFolder) / fs::path(resultFileName + "_normalized_" + to_string(i++) + ".txt");
 	} while (fs::exists(resultFilePath));
 
+	// Записывать будем в открытый через fopen файл и в байтовом режиме для большей скорости
 	FILE* normalizedBaseFilePtr = fopen(resultFilePath.string().c_str(), "wb+");
 	if (normalizedBaseFilePtr == NULL) {
 		cout << "Cannot create file for normalized base by path: [" << resultFilePath.string() << "]" << endl;
