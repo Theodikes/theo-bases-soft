@@ -99,3 +99,11 @@ bool addFileToSourceList(sparse_hash_set<string>* sourceTextFilesPaths, const ch
 string getFileNameWithoutExtension(string pathToFile) {
 	return filesystem::path(pathToFile).stem().string();
 }
+
+unsigned long long get_hash(char* s) {
+	unsigned long long h = 5381;
+	int c;
+	while ((c = *s++))
+		h = ((h << 5) + h) + c;
+	return h;
+};

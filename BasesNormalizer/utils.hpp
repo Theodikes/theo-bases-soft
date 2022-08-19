@@ -51,4 +51,7 @@ bool processSourceFileOrDirectory(sparse_hash_set<string>*, const char* path);
 // Заносит файл по указанному пути, если он имеет расширение .txt, в список файлов для обработки (нормализации, дедупликации etc)
 bool addFileToSourceList(sparse_hash_set<string>*, const char* filePath);
 
+// Хеширование строки, на выходе уникальное число
+unsigned long long get_hash(char* s);
+
 #endif // !MY_UTILS
