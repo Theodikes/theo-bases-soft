@@ -54,3 +54,43 @@ char* getFilenameFromPath(char* pathToFile) {
 
 	return fileNameWithExtension;
 }
+
+
+bool processSourceFileOrDirectory(const char** textFilesPaths, const char* path, size_t* filesCountPtr)
+{
+
+	DWORD dwAttributes = GetFileAttributes(path);
+	if (dwAttributes == INVALID_FILE_ATTRIBUTES) {
+		printf("File doesn`t exist: [%s]\n", path);
+		return false;
+	}
+	if (!(dwAttributes & FILE_ATTRIBUTE_DIRECTORY)) return addFileToSourceList(textFilesPaths, path, filesCountPtr);
+
+	WIN32_FIND_DATA fdFile;
+	HANDLE hFind = NULL;
+
+	char sPath[2048];
+	sprintf(sPath, "%s\\*", path);
+
+	if ((hFind = FindFirstFile(sPath, &fdFile)) == INVALID_HANDLE_VALUE)
+	{
+		printf("Path to directory not found: [%s]\n", path);
+		return false;
+	}
+
+	do{
+		if (strcmp(fdFile.cFileName, ".") != 0
+			&& strcmp(fdFile.cFileName, "..") != 0) {
+		processSourceFileOrDirectory(textFilesPaths, path_join(path, fdFile.cFileName), filesCountPtr);
+		}
+	} while (FindNextFile(hFind, &fdFile));
+
+	FindClose(hFind);
+
+	return true;
+}
+
+bool addFileToSourceList(const char** sourceTextFilesPaths, const char* filePath, size_t* filesCountPtr) {
+	if (!(endsWith(filePath, ".txt"))) return false;
+	sourceTextFilesPaths[(*filesCountPtr)++] = filePath;
+}

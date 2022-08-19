@@ -1,45 +1,6 @@
 ﻿#include "utils.h"
 
 
-/* Возвращает массив, содержащий пути ко всем txt - файлам в указанной директории.
-Кроме того, меняет значение переменной filesCount по указателю, чтобы вне функции стало известно, сколько всего
-в возвращенном массиве элементов (указателей на строки, каждая строка - путь к файлу для нормализации). */
-char** getDirectoryTextFilesList(const char* dirPath, unsigned short* filesCount)
-{
-	char** textFilesInDirectory = (char**)malloc(1024 * sizeof(char*));
-	WIN32_FIND_DATA fdFile;
-	HANDLE hFind = NULL;
-
-	char sPath[2048];
-	sprintf(sPath, "%s\\*.txt", dirPath);
-
-	if ((hFind = FindFirstFile(sPath, &fdFile)) == INVALID_HANDLE_VALUE)
-	{
-		printf("Path to directory not found: [%s]\n", dirPath);
-		return false;
-	}
-
-	do
-	{
-		if (strcmp(fdFile.cFileName, ".") != 0
-			&& strcmp(fdFile.cFileName, "..") != 0) {
-			char* baseFilePath = (char*)malloc(MAX_PATH * sizeof(char));
-			if (baseFilePath == NULL) {
-				puts("Cannot allocate memory to base file path string");
-				exit(1);
-			}
-			strcpy(baseFilePath, path_join(dirPath, fdFile.cFileName));
-			*(textFilesInDirectory + *filesCount) = baseFilePath;
-			(*filesCount)++;
-		}
-	} while (FindNextFile(hFind, &fdFile));
-
-	FindClose(hFind);
-
-	return textFilesInDirectory;
-}
-
-
 /* Функция для получения имени файла без расширения .txt из абсолютного пути. 
 *Используется, чтобы получить чистое название файла и к нему можно было что-нибудь добавлять.
 Работает ТОЛЬКО с файлами, имеющими расширение txt. */
@@ -151,10 +112,8 @@ static const char* const usages[] = {
 };
 
 void main(int argc, char* argv[]) {
-
 	char* pathToResultFolder = NULL;
 	FILE* mergedResultFile = NULL;
-	char* pathToSourceFolder = NULL;
 	char* emailRegexString = NULL;
 	char* passwordRegexString = NULL;
 	re_t emailRegexPattern = NULL;
@@ -163,13 +122,10 @@ void main(int argc, char* argv[]) {
 	int maxPasswordLength = 40; // Все строки с паролем длиннее будут игнорироваться
 	int checkAscii = false; // На самом деле bool...
 	int needMerge = false; // Тоже bool
-	unsigned short sourceFilesCount = 0; // Количество файлов, которые будут нормализоваться
-	char** sourceFiles = NULL;
 
 	struct argparse_option options[] = {
 		OPT_HELP(),
 		OPT_GROUP("Basic options"),
-		OPT_STRING('s', "source", &pathToSourceFolder, "absolute or relative path to folder with text bases", NULL, 0, 0),
 		OPT_STRING('d', "destination", &pathToResultFolder, "absolute or relative path to result folder", NULL, 0, 0),
 		OPT_STRING('e', "email-regex", &emailRegexString, "Regular expression for filtering emails (up to 30 characters)", NULL, 0, 0),
 		OPT_STRING('p', "password-regex", &passwordRegexString, "Regular expression for filtering passwords (up to 30 characters)", NULL, 0, 0),
@@ -177,7 +133,7 @@ void main(int argc, char* argv[]) {
 		OPT_INTEGER(0, "max", &maxPasswordLength, "maximum password length", NULL, 0, 0),
 		OPT_BOOLEAN('a', "check-ascii", &checkAscii, "ignore strings with invalid ascii characters", NULL, 0, 0),
 		OPT_BOOLEAN('m', "merge", &needMerge, "merge strings from all normalized files to one file ('merged.txt')", NULL, 0, 0),
-		OPT_GROUP("All unmarked arguments are considered paths to files with bases that need to be normalized. \nYou can combine this files and flag 'source' with directory"),
+		OPT_GROUP("All unmarked arguments are considered paths to files and folders with bases that need to be normalized. \nYou can combine this files and flag 'source' with directory"),
 		OPT_END(),
 	};
 	struct argparse argparse;
@@ -185,17 +141,12 @@ void main(int argc, char* argv[]) {
 	argparse_describe(&argparse, "\nA brief description of what the program does and how it works.", "\nAdditional description of the program after the description of the arguments.");
 	int remainingArgumentsCount = argparse_parse(&argparse, argc, argv);
 
-	// Если пользователем указан путь к папке, откуда надо брать базы для нормализации, и там они есть - нормализуем их
-	if (pathToSourceFolder != NULL) {
-		sourceFiles = getDirectoryTextFilesList(pathToSourceFolder, &sourceFilesCount);
-		for (int i = 0; i < remainingArgumentsCount; i++) {
-			sourceFiles[sourceFilesCount + i] = argv[i];
-		}
-		sourceFilesCount += remainingArgumentsCount;
-	}
-	if (sourceFilesCount == 0) {
-		sourceFilesCount = remainingArgumentsCount;
-		sourceFiles = argv;
+
+	size_t sourceFilesCount = 0; // Количество файлов, которые будут нормализоваться
+	char** sourceFiles = (char**)calloc(65536, sizeof(char*));
+
+	for (int i = 0; i < remainingArgumentsCount; i++) {
+		processSourceFileOrDirectory(sourceFiles, argv[i], &sourceFilesCount);
 	}
 	
 
