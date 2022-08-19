@@ -107,3 +107,10 @@ unsigned long long get_hash(char* s) {
 		h = ((h << 5) + h) + c;
 	return h;
 };
+
+
+size_t getLinesCountInText(char* bytes) {
+	size_t stringsCount = 0;
+	while (*bytes++) if (*bytes == 10) stringsCount++;
+	return stringsCount;
+}

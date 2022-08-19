@@ -54,4 +54,6 @@ bool addFileToSourceList(sparse_hash_set<string>*, const char* filePath);
 // Хеширование строки, на выходе уникальное число
 unsigned long long get_hash(char* s);
 
+// Считает количество строк, разделённых символами переноса строк, в тексте
+size_t getLinesCountInText(char* bytes);
 #endif // !MY_UTILS
