@@ -1,36 +1,16 @@
-﻿#include "utils.h"
+﻿#include "utils.hpp"
 
+FILE* getNormalizedBaseFilePtr(string pathToResultFolder, string pathToBaseFile) {
+	fs::path resultFilePath;
+	size_t i = 1;
+	do {
+		string resultFileName = getFileNameWithoutExtension(pathToBaseFile);
+		resultFilePath = fs::path(pathToResultFolder) / fs::path(resultFileName + "_normalized_" + to_string(i++) + ".txt");
+	} while (fs::exists(resultFilePath));
 
-/* Функция для получения имени файла без расширения .txt из абсолютного пути. 
-*Используется, чтобы получить чистое название файла и к нему можно было что-нибудь добавлять.
-Работает ТОЛЬКО с файлами, имеющими расширение txt. */
-char* getFileNameWithoutTxtExtension(char* pathToFile) {
-	char* fileNameWithExtension = getFilenameFromPath(pathToFile);
-
-	char* fileName = (char*)malloc((strlen(fileNameWithExtension) + 2) * sizeof(char));
-	if (fileName == NULL) {
-		puts("Cannot allocate memory to store filename");
-		exit(0);
-	}
-
-	for (ushortest i = 0; fileNameWithExtension[i]; i++) {
-		if (fileNameWithExtension[i] == '.' && fileNameWithExtension[i + 4] == '\0') {
-			fileName[i] = '\0';
-			break;
-		}
-		else fileName[i] = fileNameWithExtension[i];
-	}
-
-	return fileName;
-}
-
-FILE* getNormalizedBaseFilePtr(char*pathToResultFolder, char* pathToBaseFile, int fileNumber) {
-	char resultFileName[256];
-	sprintf(resultFileName, "%s_normalized_%d.txt", getFileNameWithoutTxtExtension(pathToBaseFile), fileNumber);
-	char* resultFilePath = path_join(pathToResultFolder, resultFileName);
-	FILE* normalizedBaseFilePtr = fopen(resultFilePath, "wb+");
+	FILE* normalizedBaseFilePtr = fopen(resultFilePath.string().c_str(), "wb+");
 	if (normalizedBaseFilePtr == NULL) {
-		printf("Cannot create file for normalized base by path: [%s]\n", resultFilePath);
+		cout << "Cannot create file for normalized base by path: [" << resultFilePath.string() << "]" << endl;
 	}
 	return normalizedBaseFilePtr;
 }
@@ -139,25 +119,24 @@ void main(int argc, char* argv[]) {
 	struct argparse argparse;
 	argparse_init(&argparse, options, usages, 0);
 	argparse_describe(&argparse, "\nA brief description of what the program does and how it works.", "\nAdditional description of the program after the description of the arguments.");
-	int remainingArgumentsCount = argparse_parse(&argparse, argc, argv);
+	int remainingArgumentsCount = argparse_parse(&argparse, argc, (const char **) argv);
 
-
-	size_t sourceFilesCount = 0; // Количество файлов, которые будут нормализоваться
-	char** sourceFiles = (char**)calloc(65536, sizeof(char*));
+	// Файлы для нормализации (set, чтобы избежать повторной обработки одних и тех же файлов)
+	sparse_hash_set<string> sourceFilesPaths; 
 
 	for (int i = 0; i < remainingArgumentsCount; i++) {
-		processSourceFileOrDirectory(sourceFiles, argv[i], &sourceFilesCount);
+		processSourceFileOrDirectory(&sourceFilesPaths, argv[i]);
 	}
 	
 
-	if (sourceFilesCount == 0) {
-		puts("Error: paths to bases not specified");
+	if (sourceFilesPaths.empty()) {
+		cout << "Error: paths to bases not specified" << endl;
 		exit(1);
 	}
 
 
 	if (pathToResultFolder == NULL) {
-		puts("Error: path to result directory not specified in args");
+		cout << "Error: path to result directory not specified in args" << endl;
 		exit(1);
 	}
 
@@ -165,7 +144,7 @@ void main(int argc, char* argv[]) {
 		emailRegexPattern = re_compile(emailRegexString);
 
 		if (emailRegexPattern == NULL) {
-			puts("Error: invalid email regular expression");
+			cout << "Error: invalid email regular expression" << endl;
 			exit(1);
 		}
 	}
@@ -174,25 +153,24 @@ void main(int argc, char* argv[]) {
 		passwordRegexPattern = re_compile(passwordRegexString);
 
 		if (passwordRegexPattern == NULL) {
-			puts("Error: invalid password regular expression");
+			cout << "Error: invalid password regular expression" << endl;
 			exit(1);
 		}
 	}
 
-	if (needMerge) mergedResultFile = fopen(path_join(pathToResultFolder, "merged.txt"), "wb+");
+	if (needMerge) mergedResultFile = fopen(path_join(pathToResultFolder, "normalized_merged.txt"), "wb+");
 	
-	for (int i = 0; i < sourceFilesCount; i++) {
-		char* pathToBaseFile = sourceFiles[i];
+	for (string sourceFilePath: sourceFilesPaths) {
 
-		FILE* baseFilePointer = fopen(pathToBaseFile, "rb");
+		FILE* baseFilePointer = fopen(sourceFilePath.c_str(), "rb");
 		if (baseFilePointer == NULL) {
-			printf("File is skipped. Cannot open [%s] because of invalid path or due to security policy reasons.\n", pathToBaseFile);
+			cout << "File is skipped. Cannot open [" << sourceFilePath << "] because of invalid path or due to security policy reasons." << endl;
 			continue;
 		}
 
 		FILE* normalizedBaseFilePtr = NULL;
 		if (!needMerge) {
-			normalizedBaseFilePtr = getNormalizedBaseFilePtr(pathToResultFolder, pathToBaseFile, i);
+			normalizedBaseFilePtr = getNormalizedBaseFilePtr(pathToResultFolder, sourceFilePath);
 			if (normalizedBaseFilePtr == NULL) continue;
 		}
 
@@ -208,5 +186,5 @@ void main(int argc, char* argv[]) {
 	}
 	if (needMerge) fclose(mergedResultFile);
 
-	printf("\n\nBases normalized successfully!\n\n");
+	cout << "\nBases normalized successfully!\n" << endl;
 }

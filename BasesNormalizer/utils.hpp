@@ -2,13 +2,19 @@
 #ifndef MY_UTILS
 #define MY_UTILS
 
-#include <stdio.h>
-#include <string.h>
-#include <malloc.h>
+#include <Windows.h>
+#include <string>
+#include <iostream>
 #include <stdbool.h>
+#include <filesystem>
 #include "libs/argparse/argparse.h" // https://github.com/cofyc/argparse
 #include "libs/tiny-regex/re.h" // https://github.com/kokke/tiny-regex-c
-#include <Windows.h>
+#include "libs/sparsepp/spp.h" // https://github.com/greg7mdp/sparsepp
+
+using namespace spp;
+using namespace std;
+namespace fs = std::filesystem;
+
 
 // Разделители путей в различных системах
 #ifdef _WIN32
@@ -34,15 +40,15 @@ char* path_join(const char* dir, const char* file);
 // Функция принимает в качестве аргумента валидный путь к файлу и возвращает имя файла (с расширением)
 char* getFilenameFromPath(char* pathToFile);
 
+// Функция принимает в качестве аргумента валидный путь к файлу и возвращает имя файла (без расширения)
+string getFileNameWithoutExtension(string pathToFile);
 
 /* Добавляет в массив путей к файлам, который передан в первом аргументе, все .txt файлы, находящиеся в директории,
 путь к которой передан вторым аргументом, и её поддиректориях, либо сам файл, если вторым аргументом передан путь
-не к директории, а к файлу.
-Кроме того, меняет значение переменной filesCount по указателю, чтобы вне функции стало известно, сколько всего
-в возвращенном массиве элементов (указателей на строки, каждая строка - путь к файлу для нормализации). */
-bool processSourceFileOrDirectory(const char** textFilesPaths, const char* path, size_t* filesCountPtr);
+не к директории, а к файлу */
+bool processSourceFileOrDirectory(sparse_hash_set<string>*, const char* path);
 
 // Заносит файл по указанному пути, если он имеет расширение .txt, в список файлов для обработки (нормализации, дедупликации etc)
-bool addFileToSourceList(const char** sourceTextFilesPaths, const char* filePath, size_t* filesCountPtr);
+bool addFileToSourceList(sparse_hash_set<string>*, const char* filePath);
 
 #endif // !MY_UTILS

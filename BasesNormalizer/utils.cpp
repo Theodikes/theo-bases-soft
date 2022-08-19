@@ -1,4 +1,4 @@
-﻿#include "utils.h"
+﻿#include "utils.hpp"
 
 bool startsWith(const char* str, const char* prefix)
 {
@@ -56,7 +56,7 @@ char* getFilenameFromPath(char* pathToFile) {
 }
 
 
-bool processSourceFileOrDirectory(const char** textFilesPaths, const char* path, size_t* filesCountPtr)
+bool processSourceFileOrDirectory(sparse_hash_set<string>* textFilesPaths, const char* path)
 {
 
 	DWORD dwAttributes = GetFileAttributes(path);
@@ -64,7 +64,7 @@ bool processSourceFileOrDirectory(const char** textFilesPaths, const char* path,
 		printf("File doesn`t exist: [%s]\n", path);
 		return false;
 	}
-	if (!(dwAttributes & FILE_ATTRIBUTE_DIRECTORY)) return addFileToSourceList(textFilesPaths, path, filesCountPtr);
+	if (!(dwAttributes & FILE_ATTRIBUTE_DIRECTORY)) return addFileToSourceList(textFilesPaths, path);
 
 	WIN32_FIND_DATA fdFile;
 	HANDLE hFind = NULL;
@@ -81,7 +81,7 @@ bool processSourceFileOrDirectory(const char** textFilesPaths, const char* path,
 	do{
 		if (strcmp(fdFile.cFileName, ".") != 0
 			&& strcmp(fdFile.cFileName, "..") != 0) {
-		processSourceFileOrDirectory(textFilesPaths, path_join(path, fdFile.cFileName), filesCountPtr);
+		processSourceFileOrDirectory(textFilesPaths, path_join(path, fdFile.cFileName));
 		}
 	} while (FindNextFile(hFind, &fdFile));
 
@@ -90,7 +90,11 @@ bool processSourceFileOrDirectory(const char** textFilesPaths, const char* path,
 	return true;
 }
 
-bool addFileToSourceList(const char** sourceTextFilesPaths, const char* filePath, size_t* filesCountPtr) {
+bool addFileToSourceList(sparse_hash_set<string>* sourceTextFilesPaths, const char* filePath) {
 	if (!(endsWith(filePath, ".txt"))) return false;
-	sourceTextFilesPaths[(*filesCountPtr)++] = filePath;
+	(* sourceTextFilesPaths).insert(string(filePath));
+}
+
+string getFileNameWithoutExtension(string pathToFile) {
+	return filesystem::path(pathToFile).stem().string();
 }
