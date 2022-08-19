@@ -184,31 +184,29 @@ void main(int argc, char* argv[]) {
 	for (int i = 0; i < sourceFilesCount; i++) {
 		char* pathToBaseFile = sourceFiles[i];
 
-		if (!endsWith(pathToBaseFile, ".txt")) {
-			printf("Wrong path: Base must be a .txt file, but got [%s]\nFile [%s] has skipped.\n", pathToBaseFile, pathToBaseFile);
-			continue;
-		}
-
 		FILE* baseFilePointer = fopen(pathToBaseFile, "rb");
 		if (baseFilePointer == NULL) {
 			printf("File is skipped. Cannot open [%s] because of invalid path or due to security policy reasons.\n", pathToBaseFile);
 			continue;
 		}
 
-		FILE* normalizedBaseFilePtr = getNormalizedBaseFilePtr(pathToResultFolder, pathToBaseFile, i);
-		if (normalizedBaseFilePtr == NULL) continue;
+		FILE* normalizedBaseFilePtr = NULL;
+		if (!needMerge) {
+			normalizedBaseFilePtr = getNormalizedBaseFilePtr(pathToResultFolder, pathToBaseFile, i);
+			if (normalizedBaseFilePtr == NULL) continue;
+		}
 
 		/* Читаем весь файл построчно и проверяем каждую строку на соответствие заданным условиям, 
 		если соответствует - записываем в итоговый файл с нормализованной базой */
 		char str[1024];
 		while (fgets(str, 1023, baseFilePointer)) {
-			if(isBaseStringSatisfyingConditions(str, minPasswordLength, maxPasswordLength, checkAscii, emailRegexPattern, passwordRegexPattern)) fputs(str, mergedResultFile);
+			if(isBaseStringSatisfyingConditions(str, minPasswordLength, maxPasswordLength, checkAscii, emailRegexPattern, passwordRegexPattern)) fputs(str, needMerge ? mergedResultFile : normalizedBaseFilePtr);
 		}
 		
 		fclose(baseFilePointer);
-		if (!mergedResultFile) fclose(normalizedBaseFilePtr);
+		if (!needMerge) fclose(normalizedBaseFilePtr);
 	}
-	if (mergedResultFile) fclose(mergedResultFile);
+	if (needMerge) fclose(mergedResultFile);
 
 	printf("\n\nBases normalized successfully!\n\n");
 }
