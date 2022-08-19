@@ -74,7 +74,7 @@ bool isBaseStringSatisfyingConditions(char* string, int minPasswordLength, int m
 	if (!hasEmailSign || !hasDelimeter || emailSignNumber != 1 || !hasDotAfterEmailsSign) return false;
 	
 	if (emailRegex != NULL) {
-		char* email = (char*)malloc(sizeof(char) * (emailLength + 1));
+		char* email = (char*)malloc(sizeof(char) * (emailLength + (ushortest) 1));
 		memcpy(email, string, emailLength);
 		email[emailLength] = '\0';
 		int _ = re_matchp(emailRegex, email, &hasRegexpMatched);
@@ -97,7 +97,7 @@ static const char* const usages[] = {
 	NULL,
 };
 
-void main(int argc, char* argv[]) {
+int main(int argc, char* argv[]) {
 	char* pathToResultFolder = NULL;
 	FILE* mergedResultFile = NULL;
 	char* emailRegexString = NULL;
@@ -118,7 +118,7 @@ void main(int argc, char* argv[]) {
 		OPT_INTEGER(0, "min", &minPasswordLength, "minimum password length", NULL, 0, 0),
 		OPT_INTEGER(0, "max", &maxPasswordLength, "maximum password length", NULL, 0, 0),
 		OPT_BOOLEAN('a', "check-ascii", &checkAscii, "ignore strings with invalid ascii characters", NULL, 0, 0),
-		OPT_BOOLEAN('m', "merge", &needMerge, "merge strings from all normalized files to one file ('merged.txt')", NULL, 0, 0),
+		OPT_BOOLEAN('m', "merge", &needMerge, "merge strings from all normalized files to one file\n\t\t\t\t  (By default, 'merged.txt' in destination folder)", NULL, 0, 0),
 		OPT_GROUP("All unmarked arguments are considered paths to files and folders with bases that need to be normalized. \nYou can combine this files and flag 'source' with directory"),
 		OPT_END(),
 	};

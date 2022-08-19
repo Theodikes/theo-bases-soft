@@ -92,7 +92,8 @@ bool processSourceFileOrDirectory(sparse_hash_set<string>* textFilesPaths, const
 
 bool addFileToSourceList(sparse_hash_set<string>* sourceTextFilesPaths, const char* filePath) {
 	if (!(endsWith(filePath, ".txt"))) return false;
-	(* sourceTextFilesPaths).insert(string(filePath));
+	(*sourceTextFilesPaths).insert(string(filePath));
+	return true;
 }
 
 string getFileNameWithoutExtension(string pathToFile) {
