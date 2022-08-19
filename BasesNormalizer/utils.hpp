@@ -25,8 +25,6 @@ namespace fs = std::filesystem;
 
 // Переменная для небольших положительных числовых значений, влезающих в байт памяти
 #define ushortest unsigned char
-// Максимальная длина пути к файлу в Windows
-#define MAX_PATH 1024
 
 // Проверяет, начинается ли строка с определённой другой строки (например, startsWith("test", "testing") == true)
 bool startsWith(const char* pre, const char* str);
@@ -54,6 +52,6 @@ bool addFileToSourceList(sparse_hash_set<string>*, const char* filePath);
 // Хеширование строки, на выходе уникальное число
 unsigned long long get_hash(char* s);
 
-// Считает количество строк, разделённых символами переноса строк, в тексте
+// Считает количество строк, разделённых символами переноса строк, в тексте. Каждая строка должна заканчиваться символом \n
 size_t getLinesCountInText(char* bytes);
 #endif // !MY_UTILS

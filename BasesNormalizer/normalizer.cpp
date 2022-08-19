@@ -31,7 +31,7 @@ bool isBaseStringSatisfyingConditions(char* string, int minPasswordLength, int m
 	ushortest dotsNumber = 0;
 	char currentSymbol; // Временная переменная для работы посимвольной работы со строкой
 	int hasRegexpMatched = false; // Подошла ли строка под регулярку пользователя
-	ushortest stringLength = strlen(string);
+	ushortest stringLength = (ushortest) strlen(string);
 	
 	if (stringLength > 80 || stringLength < 15) return false;
 
@@ -92,12 +92,11 @@ bool isBaseStringSatisfyingConditions(char* string, int minPasswordLength, int m
 
 // Опции для ввода аргументов вызова программы из cmd, показыаемые пользователю при использовании флага --help или -h
 static const char* const usages[] = {
-	"basic [options] [[--] args]",
-	"basic [options]",
+	"theo n [options] [paths]",
 	NULL,
 };
 
-int main(int argc, char* argv[]) {
+int normalize(int argc, const char** argv) {
 	char* pathToResultFolder = NULL;
 	FILE* mergedResultFile = NULL;
 	char* emailRegexString = NULL;
@@ -112,20 +111,19 @@ int main(int argc, char* argv[]) {
 	struct argparse_option options[] = {
 		OPT_HELP(),
 		OPT_GROUP("Basic options"),
-		OPT_STRING('d', "destination", &pathToResultFolder, "absolute or relative path to result folder", NULL, 0, 0),
-		OPT_STRING('e', "email-regex", &emailRegexString, "Regular expression for filtering emails (up to 30 characters)", NULL, 0, 0),
-		OPT_STRING('p', "password-regex", &passwordRegexString, "Regular expression for filtering passwords (up to 30 characters)", NULL, 0, 0),
-		OPT_INTEGER(0, "min", &minPasswordLength, "minimum password length", NULL, 0, 0),
-		OPT_INTEGER(0, "max", &maxPasswordLength, "maximum password length", NULL, 0, 0),
-		OPT_BOOLEAN('a', "check-ascii", &checkAscii, "ignore strings with invalid ascii characters", NULL, 0, 0),
-		OPT_BOOLEAN('m', "merge", &needMerge, "merge strings from all normalized files to one file\n\t\t\t\t  (By default, 'merged.txt' in destination folder)", NULL, 0, 0),
-		OPT_GROUP("All unmarked arguments are considered paths to files and folders with bases that need to be normalized. \nYou can combine this files and flag 'source' with directory"),
+		OPT_STRING('d', "destination", &pathToResultFolder, "absolute or relative path to result folder"),
+		OPT_STRING('e', "email-regex", &emailRegexString, "Regular expression for filtering emails (up to 30 characters)"),
+		OPT_STRING('p', "password-regex", &passwordRegexString, "Regular expression for filtering passwords (up to 30 characters)"),
+		OPT_INTEGER(0, "min", &minPasswordLength, "minimum password length"),
+		OPT_INTEGER(0, "max", &maxPasswordLength, "maximum password length"),
+		OPT_BOOLEAN('a', "check-ascii", &checkAscii, "ignore strings with invalid ascii characters"),
+		OPT_BOOLEAN('m', "merge", &needMerge, "merge strings from all normalized files to one file\n\t\t\t\t  (By default, 'normalized_merged.txt' in destination folder)"),
+		OPT_GROUP("All unmarked arguments are considered paths to files and folders with bases that need to be normalized."),
 		OPT_END(),
 	};
 	struct argparse argparse;
 	argparse_init(&argparse, options, usages, 0);
-	argparse_describe(&argparse, "\nA brief description of what the program does and how it works.", "\nAdditional description of the program after the description of the arguments.");
-	int remainingArgumentsCount = argparse_parse(&argparse, argc, (const char **) argv);
+	int remainingArgumentsCount = argparse_parse(&argparse, argc, argv);
 
 	// Файлы для нормализации (set, чтобы избежать повторной обработки одних и тех же файлов)
 	sparse_hash_set<string> sourceFilesPaths; 
@@ -193,4 +191,5 @@ int main(int argc, char* argv[]) {
 	if (needMerge) fclose(mergedResultFile);
 
 	cout << "\nBases normalized successfully!\n" << endl;
+	return ERROR_SUCCESS;
 }
