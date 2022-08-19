@@ -1,3 +1,3 @@
 ## Quick guide
 
-Download 'BasesNormalizer.exe' from releases and run command `BasesNormalizer.exe --help` using cmd or PowerShell
+Download 'theo.exe' from releases and run command `theo.exe --help` using cmd or PowerShell
