@@ -6,23 +6,11 @@ static const char* const usages[] = {
     NULL,
 };
 
-struct cmd_struct {
-    const char* cmd;
-    int (*fn) (int, const char**);
-};
-
-static struct cmd_struct commands[] = {
-    {"n", normalize},
-    {"normalize", normalize},
-    {"m", merge},
-    {"merge", merge}
-};
-
 int main(int argc, const char** argv) {
     struct argparse argparse;
     struct argparse_option options[] = {
         OPT_HELP(),
-        OPT_GROUP("Commands:\n\tnormalize, n\tNormalize bases\n\tmerge, m\tMerge files"),
+        OPT_GROUP(commandsDescription),
         OPT_END(),
     };
     argparse_init(&argparse, options, usages, ARGPARSE_STOP_AT_NON_OPTION);
