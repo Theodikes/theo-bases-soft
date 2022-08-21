@@ -15,6 +15,9 @@ using namespace spp;
 using namespace std;
 namespace fs = std::filesystem;
 
+// Оптимальный размер чанка диска (ssd) для записи и чтения за одну операцию (fread/fwrite), вычислено тестированием
+static constexpr unsigned OPTIMAL_DISK_CHUNK_SIZE = 1024 * 1024 * 64;
+
 
 // Разделители путей в различных системах
 #ifdef _WIN32
@@ -36,7 +39,7 @@ bool endsWith(const char* str, const char* suffix);
 char* path_join(const char* dir, const char* file);
 
 // Функция принимает в качестве аргумента валидный путь к файлу и возвращает имя файла (с расширением)
-char* getFilenameFromPath(char* pathToFile);
+const char* getFilenameFromPath(const char* pathToFile);
 
 // Функция принимает в качестве аргумента валидный путь к файлу и возвращает имя файла (без расширения)
 string getFileNameWithoutExtension(string pathToFile);
@@ -54,4 +57,7 @@ unsigned long long get_hash(char* s);
 
 // Считает количество строк, разделённых символами переноса строк, в тексте. Каждая строка должна заканчиваться символом \n
 size_t getLinesCountInText(char* bytes);
+
+// Возвращает количество байт информации в файле, если файл не найден или к нему нет доступа, возаращает 0
+unsigned long long getFileSize(const char* pathToFile);
 #endif // !MY_UTILS

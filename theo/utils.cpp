@@ -48,8 +48,8 @@ char* path_join(const char* dir, const char* file) {
 	return buf;
 }
 
-char* getFilenameFromPath(char* pathToFile) {
-	char* fileNameWithExtension;
+const char* getFilenameFromPath(const char* pathToFile) {
+	const char* fileNameWithExtension;
 	(fileNameWithExtension = strrchr(pathToFile, '\\')) ? ++fileNameWithExtension : (fileNameWithExtension = pathToFile);
 
 	return fileNameWithExtension;
@@ -113,4 +113,11 @@ size_t getLinesCountInText(char* bytes) {
 	size_t stringsCount = 0;
 	while (*bytes++) if (*bytes == 10) stringsCount++;
 	return stringsCount;
+}
+
+unsigned long long getFileSize(const char* pathToFile) {
+	WIN32_FILE_ATTRIBUTE_DATA fileData;
+	if (GetFileAttributesExA(pathToFile, GetFileExInfoStandard, &fileData))
+		return (static_cast<ULONGLONG>(fileData.nFileSizeHigh) << sizeof(fileData.nFileSizeLow) * 8) |fileData.nFileSizeLow;
+	return 0;
 }
