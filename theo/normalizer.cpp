@@ -74,11 +74,11 @@ bool isBaseStringSatisfyingConditions(char* string, int minPasswordLength, int m
 	if (!hasEmailSign || !hasDelimeter || emailSignNumber != 1 || !hasDotAfterEmailsSign) return false;
 	
 	if (emailRegex != NULL) {
-		char* email = (char*)malloc(sizeof(char) * (emailLength + (ushortest) 1));
+		char* email = new char[emailLength + (ushortest) 1];
 		memcpy(email, string, emailLength);
 		email[emailLength] = '\0';
 		int _ = re_matchp(emailRegex, email, &hasRegexpMatched);
-		free(email);
+		delete[] email;
 		if (!hasRegexpMatched) return false;
 	}
 
