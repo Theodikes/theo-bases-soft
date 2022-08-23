@@ -86,6 +86,10 @@ int deduplicate(int argc, const char** argv) {
 
     chrono::steady_clock::time_point begin = chrono::steady_clock::now();
     FILE* inputFile = fopen(inputFilePath, "rb");
+    if (inputFile == NULL) {
+        cout << "Invalid path to source file: [" << inputFilePath << "]" << endl;
+        return ERROR_OPEN_FAILED;
+    }
 
     long long inputFileSizeInBytes = getFileSize(inputFilePath);
     if (inputFileSizeInBytes == -1) {
@@ -99,11 +103,6 @@ int deduplicate(int argc, const char** argv) {
     if (getAvailableMemoryInBytes() / 10 * 8 < static_cast<ull>(inputFileSizeInBytes)) {
         cout << "Not enough memory to process this file: [" << inputFilePath << "]" << endl;
         return WN_OUT_OF_MEMORY;
-    }
-
-    if (inputFile == NULL || !isFileValid(inputFilePath)) {
-        cout << "Invalid path to source file: [" << inputFilePath << "]" << endl;
-        return ERROR_OPEN_FAILED;
     }
 
     FILE* resultFile = fopen(destinationFilePath, "wb+");
