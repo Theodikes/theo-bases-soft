@@ -29,7 +29,7 @@ static constexpr unsigned OPTIMAL_DISK_CHUNK_SIZE = 1024 * 1024 * 64;
 // Переменная для небольших положительных числовых значений, влезающих в байт памяти
 #define ushortest unsigned char
 
-// СОкращение unsigned long long для уменьшения количества кода и размера аргументов функций
+// СОкращение ull для уменьшения количества кода и размера аргументов функций
 #define ull unsigned long long
 
 // Проверяет, начинается ли строка с определённой другой строки (например, startsWith("test", "testing") == true)
@@ -56,7 +56,7 @@ bool processSourceFileOrDirectory(sparse_hash_set<string>*, const char* path);
 bool addFileToSourceList(sparse_hash_set<string>*, const char* filePath);
 
 // Хеширование строки, на выходе уникальное число
-unsigned long long get_hash(char* s);
+ull get_hash(char* s);
 
 // Считает количество строк, разделённых символами переноса строк, в тексте. Каждая строка должна заканчиваться символом \n
 size_t getLinesCountInText(char* bytes);
@@ -65,7 +65,7 @@ size_t getLinesCountInText(char* bytes);
 long long getFileSize(const char* pathToFile);
 
 // Возвращает количество свободной оперативной памяти в байтах
-unsigned long long getAvailableMemoryInBytes(void);
+ull getAvailableMemoryInBytes(void);
 
 // Является ли валидным файл по указаному пути (существует ли он и есть ли к нему доступ)
 bool isFileValid(const char* pathToFile);

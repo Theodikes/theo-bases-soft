@@ -100,8 +100,8 @@ string getFileNameWithoutExtension(string pathToFile) {
 	return filesystem::path(pathToFile).stem().string();
 }
 
-unsigned long long get_hash(char* s) {
-	unsigned long long h = 5381;
+ull get_hash(char* s) {
+	ull h = 5381;
 	int c;
 	while ((c = *s++))
 		h = ((h << 5) + h) + c;
@@ -122,7 +122,7 @@ long long getFileSize(const char* pathToFile) {
 	return -1;
 }
 
-unsigned long long getAvailableMemoryInBytes(void) {
+ull getAvailableMemoryInBytes(void) {
 	MEMORYSTATUSEX ms;
 	ms.dwLength = sizeof(ms);
 	GlobalMemoryStatusEx(&ms);

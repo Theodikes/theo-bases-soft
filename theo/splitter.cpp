@@ -16,7 +16,7 @@ FILE* getNextSplittedFilePtr(const char* destinationDirectory, size_t currentFil
 
 // Опции для ввода аргументов вызова программы из cmd, показыаемые пользователю при использовании флага --help или -h
 static const char* const usages[] = {
-	"theo s [options] [paths]",
+	"theo s [options]",
 	NULL,
 };
 
@@ -66,7 +66,7 @@ int split(int argc, const char** argv) {
 	/* Вычисляем размер временного буфера для хранения и обработки байтовых данных с файлов. 
 	* Обычно буфер должен иметь оптимальный размер для работы с диском (64 мегабайта, степень двойки в байтах),
 	* однако, если сам изначальный файл для разбиения меньше, используется его размер, чтобы не занимать лишнюю оперативку */
-	unsigned long long fileSize = getFileSize(inputFilePath);
+	ull fileSize = getFileSize(inputFilePath);
 	size_t countBytesToReadInOneIteration = min(OPTIMAL_DISK_CHUNK_SIZE, fileSize);
 
 	/* Буфер, в который будет считываться информация с диска(со входящего файла) и в котором будут считаться строки.
