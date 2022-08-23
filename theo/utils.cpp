@@ -9,7 +9,7 @@ bool startsWith(const char* str, const char* prefix)
 
 bool endsWith(const char* str, const char* suffix)
 {
-	if (!str || !suffix)
+	if (!str or !suffix)
 		return 0;
 	size_t lenstr = strlen(str);
 	size_t lensuffix = strlen(suffix);
@@ -80,7 +80,7 @@ bool processSourceFileOrDirectory(robin_hood::unordered_flat_set<string>* textFi
 
 	do{
 		if (strcmp(fdFile.cFileName, ".") != 0
-			&& strcmp(fdFile.cFileName, "..") != 0) {
+			and strcmp(fdFile.cFileName, "..") != 0) {
 		processSourceFileOrDirectory(textFilesPaths, path_join(path, fdFile.cFileName));
 		}
 	} while (FindNextFile(hFind, &fdFile));

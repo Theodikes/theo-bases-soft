@@ -57,7 +57,7 @@ size_t processBufferLineByLine(char* buffer, size_t buflen, char* resultBuffer, 
     /* Если не конец файла, и при этом во входном буфере остался кусок строки - копируем её в начало входного буфера и
     * вычисляем и возвращаем её длину, чтобы во время чтения следующего куска файла с корректного места начать заполнение буфера */
     size_t lastStringLength = buflen - currentStringStartPosInInputBufferIdx;
-    if (currentStringStartPosInInputBufferIdx != buflen && buffer[buflen - 1] != '\n')
+    if (currentStringStartPosInInputBufferIdx != buflen and buffer[buflen - 1] != '\n')
         memcpy(buffer, &buffer[currentStringStartPosInInputBufferIdx], lastStringLength);
     return lastStringLength;
 }
@@ -121,7 +121,7 @@ int deduplicate(int argc, const char** argv) {
     * Аллоцируется в куче, потому что в стеке может быть ограничение на размер памяти */
     char* inputBuffer = new char[countBytesToReadInOneIteration];
     char* resultBuffer = new char[countBytesToReadInOneIteration];
-    if (inputBuffer == NULL || resultBuffer == NULL) {
+    if (inputBuffer == NULL or resultBuffer == NULL) {
         cout << "Error: annot allocate buffer of " << countBytesToReadInOneIteration * 2 << "bytes" << endl;
         exit(1);
     }

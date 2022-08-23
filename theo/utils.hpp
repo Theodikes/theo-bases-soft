@@ -25,6 +25,11 @@ static constexpr unsigned OPTIMAL_DISK_CHUNK_SIZE = 1024 * 1024 * 64;
 #define PATH_JOIN_SEPARATOR   "/"
 #endif
 
+// Я люблю очевилные и чистые условия, как в питоне, извините
+#define and &&
+#define or ||
+#define not !
+
 // Переменная для небольших положительных числовых значений, влезающих в байт памяти
 #define ushortest unsigned char
 

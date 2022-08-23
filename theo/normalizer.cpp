@@ -33,7 +33,7 @@ bool isBaseStringSatisfyingConditions(char* string, int minPasswordLength, int m
 	int hasRegexpMatched = false; // Подошла ли строка под регулярку пользователя
 	ushortest stringLength = (ushortest) strlen(string);
 	
-	if (stringLength > 80 || stringLength < 15) return false;
+	if (stringLength > 80 or stringLength < 15) return false;
 
 	// Если стоит флаг checkAscii, то все строки, в которых есть символы кроме английских букв, цифр и пунктуации - невалидны
 	if (checkAscii) {
@@ -41,7 +41,7 @@ bool isBaseStringSatisfyingConditions(char* string, int minPasswordLength, int m
 			/* Если это командный символ, то есть имеет код от 0 до 31 или от 127 до 255, и при этом
 			* это не символ с кодом 10(символ переноса строки, '\n') и не символ с кодом 13 (символ возврата каретки, '\r'),
 			* то строка не является валидной строкой английского ascii и должна быть пропущена */
-			if ((currentSymbol < 31 || currentSymbol > 126) && currentSymbol != 10 && currentSymbol != 13) return false;
+			if ((currentSymbol < 31 or currentSymbol > 126) and currentSymbol != 10 and currentSymbol != 13) return false;
 		}
 	}
 
@@ -60,18 +60,18 @@ bool isBaseStringSatisfyingConditions(char* string, int minPasswordLength, int m
 			emailSignNumber++;
 			hasEmailSign = true;
 		}
-		if (currentSymbol == '.' && hasEmailSign) hasDotAfterEmailsSign = true;
+		if (currentSymbol == '.' and hasEmailSign) hasDotAfterEmailsSign = true;
 	}
 	/* Если емейл неадекватной длины, настолько, что похож на случайную строку, в которой присутствует символ '@' и '.',
 	* игнорируем его */
-	if (emailLength < 8 || emailLength > 50) return false;
+	if (emailLength < 8 or emailLength > 50) return false;
 
 	// Начинаем считать длину пароля с конца емела
 	char* passwordStartPointer = &string[emailLength + 1];
 	int passwordLength = (int)strlen(passwordStartPointer);
-	if (passwordLength < minPasswordLength || passwordLength > maxPasswordLength) return false;
+	if (passwordLength < minPasswordLength or passwordLength > maxPasswordLength) return false;
 
-	if (!hasEmailSign || !hasDelimeter || emailSignNumber != 1 || !hasDotAfterEmailsSign) return false;
+	if (!hasEmailSign or !hasDelimeter or emailSignNumber != 1 or !hasDotAfterEmailsSign) return false;
 	
 	if (emailRegex != NULL) {
 		char* email = new char[emailLength + (ushortest) 1];
@@ -173,7 +173,7 @@ int normalize(int argc, const char** argv) {
 		}
 
 		FILE* normalizedBaseFilePtr = NULL;
-		if (!needMerge) {
+		if (not needMerge) {
 			normalizedBaseFilePtr = getNormalizedBaseFilePtr(pathToResultFolder, sourceFilePath);
 			if (normalizedBaseFilePtr == NULL) continue;
 		}
