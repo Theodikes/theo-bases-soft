@@ -5,6 +5,7 @@
 int normalize(int argc, const char** argv); // Команда для нормализации файлов
 int merge(int argc, const char** argv); // Команда для объединения файлов в один
 int split(int argc, const char** argv); // Команда для разделения файла на строки
+int deduplicate(int argc, const char** argv); // Команда для удаления совпадающих строк из файла
 
 struct cmd_struct {
     const char* cmd;
@@ -17,12 +18,15 @@ static struct cmd_struct commands[] = {
     {"m", merge},
     {"merge", merge},
     {"s", split},
-    {"split", split}
+    {"split", split},
+    {"d", deduplicate},
+    {"dedup", deduplicate}
 };
 
 static const char* const commandsDescription = "Commands:\n\
             normalize, n    Normalize bases\n\
             merge, m        Merge files\n\
-            split, s        Split file by number of lines";
+            split, s        Split file by number of lines\n\
+            dedup, d        Delete duplicate lines in file\n";
 
 #endif // !THEO_COMMANDS
