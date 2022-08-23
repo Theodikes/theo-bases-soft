@@ -117,8 +117,8 @@ size_t getLinesCountInText(char* bytes) {
 
 long long getFileSize(const char* pathToFile) {
 	WIN32_FILE_ATTRIBUTE_DATA fileData;
-	if (GetFileAttributesExA(pathToFile, GetFileExInfoStandard, &fileData))
-		return (static_cast<ULONGLONG>(fileData.nFileSizeHigh) << sizeof(fileData.nFileSizeLow) * 8) |fileData.nFileSizeLow;
+	if (GetFileAttributesEx(pathToFile, GetFileExInfoStandard, &fileData))
+		return (static_cast<ull>(fileData.nFileSizeHigh) << sizeof(fileData.nFileSizeLow) * 8) |fileData.nFileSizeLow;
 	return -1;
 }
 
@@ -129,6 +129,6 @@ ull getAvailableMemoryInBytes(void) {
 	return ms.ullAvailPhys;
 }
 
-bool isFileValid(const char* pathToFile) {
+bool isAnythingExistsByPath(const char* pathToFile) {
 	return GetFileAttributes(pathToFile) != INVALID_FILE_ATTRIBUTES;
 }

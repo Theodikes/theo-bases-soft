@@ -66,6 +66,6 @@ long long getFileSize(const char* pathToFile);
 // Возвращает количество свободной оперативной памяти в байтах
 ull getAvailableMemoryInBytes(void);
 
-// Является ли валидным файл по указаному пути (существует ли он и есть ли к нему доступ)
-bool isFileValid(const char* pathToFile);
+// Существует ли что-либо по указанному пути
+bool isAnythingExistsByPath(const char* pathToFile);
 #endif // !MY_UTILS
