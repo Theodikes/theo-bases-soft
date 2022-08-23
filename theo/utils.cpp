@@ -21,7 +21,7 @@ bool endsWith(const char* str, const char* suffix)
 char* path_join(const char* dir, const char* file) {
 
 	size_t size = strlen(dir) + strlen(file) + 2;
-	char* buf = (char*)malloc(size * sizeof(char));
+	char* buf = new char[size];
 	if (NULL == buf) return NULL;
 
 	strcpy(buf, dir);
@@ -115,9 +115,20 @@ size_t getLinesCountInText(char* bytes) {
 	return stringsCount;
 }
 
-unsigned long long getFileSize(const char* pathToFile) {
+long long getFileSize(const char* pathToFile) {
 	WIN32_FILE_ATTRIBUTE_DATA fileData;
 	if (GetFileAttributesExA(pathToFile, GetFileExInfoStandard, &fileData))
 		return (static_cast<ULONGLONG>(fileData.nFileSizeHigh) << sizeof(fileData.nFileSizeLow) * 8) |fileData.nFileSizeLow;
-	return 0;
+	return -1;
+}
+
+unsigned long long getAvailableMemoryInBytes(void) {
+	MEMORYSTATUSEX ms;
+	ms.dwLength = sizeof(ms);
+	GlobalMemoryStatusEx(&ms);
+	return ms.ullAvailPhys;
+}
+
+bool isFileValid(const char* pathToFile) {
+	return GetFileAttributes(pathToFile) != INVALID_FILE_ATTRIBUTES;
 }

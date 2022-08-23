@@ -29,6 +29,9 @@ static constexpr unsigned OPTIMAL_DISK_CHUNK_SIZE = 1024 * 1024 * 64;
 // Переменная для небольших положительных числовых значений, влезающих в байт памяти
 #define ushortest unsigned char
 
+// СОкращение unsigned long long для уменьшения количества кода и размера аргументов функций
+#define ull unsigned long long
+
 // Проверяет, начинается ли строка с определённой другой строки (например, startsWith("test", "testing") == true)
 bool startsWith(const char* pre, const char* str);
 
@@ -58,6 +61,12 @@ unsigned long long get_hash(char* s);
 // Считает количество строк, разделённых символами переноса строк, в тексте. Каждая строка должна заканчиваться символом \n
 size_t getLinesCountInText(char* bytes);
 
-// Возвращает количество байт информации в файле, если файл не найден или к нему нет доступа, возаращает 0
-unsigned long long getFileSize(const char* pathToFile);
+// Возвращает количество байт информации в файле, если файл не найден или к нему нет доступа, возаращает -1
+long long getFileSize(const char* pathToFile);
+
+// Возвращает количество свободной оперативной памяти в байтах
+unsigned long long getAvailableMemoryInBytes(void);
+
+// Является ли валидным файл по указаному пути (существует ли он и есть ли к нему доступ)
+bool isFileValid(const char* pathToFile);
 #endif // !MY_UTILS
