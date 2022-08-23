@@ -67,5 +67,8 @@ long long getFileSize(const char* pathToFile);
 ull getAvailableMemoryInBytes(void);
 
 // Существует ли что-либо по указанному пути
-bool isAnythingExistsByPath(const char* pathToFile);
+bool isAnythingExistsByPath(const char* path);
+
+// Является ли указанный путь путём к директории
+bool isDirectory(const char* path);
 #endif // !MY_UTILS

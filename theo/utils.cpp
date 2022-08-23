@@ -129,6 +129,10 @@ ull getAvailableMemoryInBytes(void) {
 	return ms.ullAvailPhys;
 }
 
-bool isAnythingExistsByPath(const char* pathToFile) {
-	return GetFileAttributes(pathToFile) != INVALID_FILE_ATTRIBUTES;
+bool isAnythingExistsByPath(const char* path) {
+	return GetFileAttributes(path) != INVALID_FILE_ATTRIBUTES;
+}
+
+bool isDirectory(const char* path) {
+	return GetFileAttributes(path) & FILE_ATTRIBUTE_DIRECTORY;
 }
