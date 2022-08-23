@@ -9,9 +9,8 @@
 #include <filesystem>
 #include "libs/argparse/argparse.h" // https://github.com/cofyc/argparse
 #include "libs/tiny-regex/re.h" // https://github.com/kokke/tiny-regex-c
-#include "libs/sparsepp/spp.h" // https://github.com/greg7mdp/sparsepp
+#include "libs/robinhood.h" // https://github.com/martinus/robin-hood-hashing
 
-using namespace spp;
 using namespace std;
 namespace fs = std::filesystem;
 
@@ -50,10 +49,10 @@ string getFileNameWithoutExtension(string pathToFile);
 /* Добавляет в массив путей к файлам, который передан в первом аргументе, все .txt файлы, находящиеся в директории,
 путь к которой передан вторым аргументом, и её поддиректориях, либо сам файл, если вторым аргументом передан путь
 не к директории, а к файлу */
-bool processSourceFileOrDirectory(sparse_hash_set<string>*, const char* path);
+bool processSourceFileOrDirectory(robin_hood::unordered_flat_set<string>*, const char* path);
 
 // Заносит файл по указанному пути, если он имеет расширение .txt, в список файлов для обработки (нормализации, дедупликации etc)
-bool addFileToSourceList(sparse_hash_set<string>*, const char* filePath);
+bool addFileToSourceList(robin_hood::unordered_flat_set<string>*, const char* filePath);
 
 // Хеширование строки, на выходе уникальное число
 ull get_hash(char* s);

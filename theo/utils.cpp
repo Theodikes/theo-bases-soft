@@ -56,7 +56,7 @@ const char* getFilenameFromPath(const char* pathToFile) {
 }
 
 
-bool processSourceFileOrDirectory(sparse_hash_set<string>* textFilesPaths, const char* path)
+bool processSourceFileOrDirectory(robin_hood::unordered_flat_set<string>* textFilesPaths, const char* path)
 {
 
 	DWORD dwAttributes = GetFileAttributes(path);
@@ -90,7 +90,7 @@ bool processSourceFileOrDirectory(sparse_hash_set<string>* textFilesPaths, const
 	return true;
 }
 
-bool addFileToSourceList(sparse_hash_set<string>* sourceTextFilesPaths, const char* filePath) {
+bool addFileToSourceList(robin_hood::unordered_flat_set<string>* sourceTextFilesPaths, const char* filePath) {
 	if (!(endsWith(filePath, ".txt"))) return false;
 	(*sourceTextFilesPaths).insert(string(filePath));
 	return true;

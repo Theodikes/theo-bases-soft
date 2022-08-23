@@ -126,7 +126,7 @@ int normalize(int argc, const char** argv) {
 	int remainingArgumentsCount = argparse_parse(&argparse, argc, argv);
 
 	// Файлы для нормализации (set, чтобы избежать повторной обработки одних и тех же файлов)
-	sparse_hash_set<string> sourceFilesPaths; 
+	robin_hood::unordered_flat_set<string> sourceFilesPaths;
 
 	for (int i = 0; i < remainingArgumentsCount; i++) {
 		processSourceFileOrDirectory(&sourceFilesPaths, argv[i]);
