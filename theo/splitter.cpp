@@ -59,6 +59,7 @@ int split(int argc, const char** argv) {
 			cout << "Error: cannot create directory by destination path" << endl;
 			exit(1);
 		}
+		cout << "Destination directory successfully created, start spitting file into it" << endl;
 	}
 
 	FILE* inputFilePtr = fopen(inputFilePath, "rb");
