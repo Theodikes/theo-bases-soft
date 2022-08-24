@@ -54,12 +54,9 @@ size_t processBufferLineByLine(char* buffer, size_t buflen, char* resultBuffer, 
         addStringToDestinationBufferCheckingHash(currentHash, buffer, buflen, currentStringStartPosInInputBufferIdx, resultBuffer, resultBufferLengthPtr);
         return 0;
     }
-    /* Если не конец файла, и при этом во входном буфере остался кусок строки - копируем её в начало входного буфера и
-    * вычисляем и возвращаем её длину, чтобы во время чтения следующего куска файла с корректного места начать заполнение буфера */
-    size_t lastStringLength = buflen - currentStringStartPosInInputBufferIdx;
-    if (currentStringStartPosInInputBufferIdx != buflen and buffer[buflen - 1] != '\n')
-        memcpy(buffer, &buffer[currentStringStartPosInInputBufferIdx], lastStringLength);
-    return lastStringLength;
+    /* Если не конец файла, и при этом во входном буфере остался кусок строки - возвращаем её длину, чтобы в передвинуть указатель
+    в файле на нужное место и в следующий раз начать чтение с этой же строки*/
+    return  buflen - currentStringStartPosInInputBufferIdx;
 }
 
 // Опции для ввода аргументов вызова программы из cmd, показыаемые пользователю при использовании флага --help или -h
@@ -128,22 +125,20 @@ int deduplicate(int argc, const char** argv) {
 
     // Текущее количество памяти в байтах, доступной на запись из файла, во входном буфере.
     size_t currentInputBufferAvailableWriteSize = countBytesToReadInOneIteration;
-    // Отступ от начала входного буфера в байтах (с какого байта можно начинать запись новых данных)
-    size_t inputBufferWriteOffset = 0;
     while (!feof(inputFile)) {
         size_t resultBufferLength = 0; // Длина итогового буфера с уникальными строками в байтах
         /* Считываем нужное количество байт из входного файла в буфер, количество реально считаных байт записывается 
         *  в переменную, нужную на случай, если файл закончился, и реально считалось меньше байт, чем предполагалось */
-        size_t bytesReadedCount = fread(&inputBuffer[inputBufferWriteOffset], sizeof(char), currentInputBufferAvailableWriteSize, inputFile);
-        // Реальный размер заполненного буфера вычисляется из отступа начального и записанных в буфер данных
-        size_t inputBufferLength = bytesReadedCount + inputBufferWriteOffset;
+        size_t bytesReadedCount = fread(inputBuffer, sizeof(char), currentInputBufferAvailableWriteSize, inputFile);
         /* Читаем буфер посимвольно, генерируем хеши для строк, проверяем на уникальность, записываем уникальные строки
-        * последовательно в итоговый буфер */
-        inputBufferWriteOffset = processBufferLineByLine(inputBuffer, inputBufferLength, resultBuffer, &resultBufferLength, feof(inputFile));
+        * последовательно в итоговый буфер и получаем размер отступа назад для чтения в следующий раз (если буфер был
+        * обрезан на середине какой-то строки, отступ ненулевой, чтобы прочесть строку полностью)*/
+        size_t inputBufferWriteOffset = processBufferLineByLine(inputBuffer, bytesReadedCount, resultBuffer, &resultBufferLength, feof(inputFile));
         // Записываем данные из итогового буфера с уникальными строками в файл вывода
         fwrite(resultBuffer, sizeof(char), resultBufferLength, resultFile);
-        // Вычисляем новое значение допустимого размера места для записи во входной буфер на основе остатка из предыдущего
-        currentInputBufferAvailableWriteSize = countBytesToReadInOneIteration - inputBufferWriteOffset;
+        /* Если в этом считанном входном буфере осталась незаконченная строка, обрезанная при считывании побайтово, делаем отступ
+         * в файле назад на длину оставшегося в буфере неполного куска строки, чтобы при следующем fread обработать её полностью */
+        if (inputBufferWriteOffset) fseek(inputFile, -static_cast<long>(inputBufferWriteOffset), SEEK_CUR);
     }
     // Освобождение памяти буферов и закрытие файлов
     delete[] inputBuffer;
