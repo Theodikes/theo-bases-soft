@@ -35,7 +35,7 @@ char* path_join(const char* dir, const char* file) {
 	if (startsWith(file, PATH_JOIN_SEPARATOR)) {
 		char* filecopy = _strdup(file);
 		if (NULL == filecopy) {
-			free(buf);
+			delete[] buf;
 			return NULL;
 		}
 		strcat(buf, ++filecopy);
@@ -135,4 +135,14 @@ bool isAnythingExistsByPath(const char* path) {
 
 bool isDirectory(const char* path) {
 	return GetFileAttributes(path) & FILE_ATTRIBUTE_DIRECTORY;
+}
+
+bool isValidRegex(const char* regularExpression) {
+	try {
+		regex re(regularExpression);
+	}
+	catch (const regex_error&) {
+		return false;
+	}
+	return true;
 }

@@ -5,10 +5,10 @@
 #include <Windows.h>
 #include <string>
 #include <iostream>
+#include <regex>
 #include <stdbool.h>
 #include <filesystem>
 #include "libs/argparse/argparse.h" // https://github.com/cofyc/argparse
-#include "libs/tiny-regex/re.h" // https://github.com/kokke/tiny-regex-c
 #include "libs/robinhood.h" // https://github.com/martinus/robin-hood-hashing
 
 using namespace std;
@@ -76,4 +76,7 @@ bool isAnythingExistsByPath(const char* path);
 
 // Является ли указанный путь путём к директории
 bool isDirectory(const char* path);
+
+// Является ли регулярное выражение (переданное строкой) валидным
+bool isValidRegex(const char* regularExpression);
 #endif // !MY_UTILS
