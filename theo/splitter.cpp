@@ -4,7 +4,7 @@
 позицию начала следующей строки в буфере. Если же прочитан весь буфер, но нужного количества строк не набралось,
 возвращает позицию последнего элемента в буфере. */
 size_t readBufferByLinesUntilCount(char* buffer, size_t buflen, size_t startBufIndex, size_t* remainingStrings) {
-	for (size_t i = startBufIndex; i < buflen; i++) if (buffer[i] == 10 && !-- * remainingStrings) return i + 1;
+	for (size_t i = startBufIndex; i < buflen; i++) if (buffer[i] == 10 and !-- * remainingStrings) return i + 1;
 	return buflen;
 }
 
@@ -22,7 +22,7 @@ static const char* const usages[] = {
 
 int split(int argc, const char** argv) {
 	const char* inputFilePath = "merged.txt";
-	const char* destinationDirectory = ".";
+	const char* destinationDirectoryPath = ".";
 	size_t	linesInOneFile = 0;
 
 	struct argparse_option options[] = {
@@ -30,7 +30,7 @@ int split(int argc, const char** argv) {
 		OPT_GROUP("Basic options"),
 		OPT_INTEGER('l', "lines", &linesInOneFile, "Number of lines in each file after splitting"),
 		OPT_STRING('s', "source", &inputFilePath, "Path to file to be splitted ('merged.txt' by default)"),
-		OPT_STRING('d', "destination", &destinationDirectory, "Destination directory, where the split files will be written\
+		OPT_STRING('d', "destination", &destinationDirectoryPath, "Destination directory, where the split files will be written\
 						      (current directory by default)"),
 		OPT_END(),
 	};
@@ -43,12 +43,18 @@ int split(int argc, const char** argv) {
 		exit(1);
 	}
 
-	if (!(GetFileAttributes(destinationDirectory) & FILE_ATTRIBUTE_DIRECTORY) || GetFileAttributes(destinationDirectory) == INVALID_FILE_ATTRIBUTES) {
+	if (isAnythingExistsByPath(destinationDirectoryPath) and not isDirectory(destinationDirectoryPath)) {
+		cout << "Error: something is by path [" << destinationDirectoryPath << "] and this isn`t directory" << endl;
+		exit(1);
+	}
+	
+
+	if (!isAnythingExistsByPath(destinationDirectoryPath)) {
 		char answer;
 		cout << "Destination directory doesn`t exist, create it? (y/n): ";
 		cin >> answer;
 		if (answer != 'y') exit(1);
-		bool ret = CreateDirectory(destinationDirectory, NULL);
+		bool ret = CreateDirectory(destinationDirectoryPath, NULL);
 		if (!ret) {
 			cout << "Error: cannot create directory by destination path" << endl;
 			exit(1);
@@ -85,7 +91,7 @@ int split(int argc, const char** argv) {
 	/* Текущий номер файла, в который записываются строки из изначального. Имя каждого нового файла - 
 	* имя изначального файла без расширения + '_[порядковый номер файла].txt' в конце */
 	size_t currentFileNumber = 1;
-	FILE* currentSplittedFilePtr = getNextSplittedFilePtr(destinationDirectory, currentFileNumber, inputFilePath);
+	FILE* currentSplittedFilePtr = getNextSplittedFilePtr(destinationDirectoryPath, currentFileNumber, inputFilePath);
 
 	while (!feof(inputFilePtr)) {
 		size_t bytesReaded = fread(buffer, sizeof(char), countBytesToReadInOneIteration, inputFilePtr);
@@ -108,7 +114,8 @@ int split(int argc, const char** argv) {
 			if (remainingStrings == 0) {
 				remainingStrings = linesInOneFile;
 				fclose(currentSplittedFilePtr);
-				currentSplittedFilePtr = getNextSplittedFilePtr(destinationDirectory, ++currentFileNumber, inputFilePath);
+				// Если конец входного файла, новый файл для строк создавать не надо, так как он будет пустым
+				if(!feof(inputFilePtr) or startPos < bytesReaded) currentSplittedFilePtr = getNextSplittedFilePtr(destinationDirectoryPath, ++currentFileNumber, inputFilePath);
 			}
 		}
 		// Если прочитали весь файл, который мы делим, закрываем текущий файл для записи (он будет неполным и последним)
