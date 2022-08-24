@@ -8,8 +8,8 @@ size_t readBufferByLinesUntilCount(char* buffer, size_t buflen, size_t startBufI
 	return buflen;
 }
 
-FILE* getNextSplittedFilePtr(const char* destinationDirectory, size_t currentFileNumber, const char* inputFilePath) {
-	string resultFilenameWithExtension = getFileNameWithoutExtension(inputFilePath) + "_" + to_string(currentFileNumber) + ".txt";
+FILE* getNextSplittedFilePtr(const char* destinationDirectory, size_t linesInOneFile, size_t currentFileNumber, const char* inputFilePath) {
+	string resultFilenameWithExtension = getFileNameWithoutExtension(inputFilePath) + "_" + to_string(linesInOneFile) + + "_" + to_string(currentFileNumber) + ".txt";
 	const char* pathToSplittedFile = path_join(destinationDirectory, resultFilenameWithExtension.c_str());
 	return fopen(pathToSplittedFile, "wb+");
 }
@@ -91,7 +91,7 @@ int split(int argc, const char** argv) {
 	/* Текущий номер файла, в который записываются строки из изначального. Имя каждого нового файла - 
 	* имя изначального файла без расширения + '_[порядковый номер файла].txt' в конце */
 	size_t currentFileNumber = 1;
-	FILE* currentSplittedFilePtr = getNextSplittedFilePtr(destinationDirectoryPath, currentFileNumber, inputFilePath);
+	FILE* currentSplittedFilePtr = getNextSplittedFilePtr(destinationDirectoryPath, linesInOneFile, currentFileNumber, inputFilePath);
 
 	while (!feof(inputFilePtr)) {
 		size_t bytesReaded = fread(buffer, sizeof(char), countBytesToReadInOneIteration, inputFilePtr);
@@ -115,7 +115,7 @@ int split(int argc, const char** argv) {
 				remainingStrings = linesInOneFile;
 				fclose(currentSplittedFilePtr);
 				// Если конец входного файла, новый файл для строк создавать не надо, так как он будет пустым
-				if(!feof(inputFilePtr) or startPos < bytesReaded) currentSplittedFilePtr = getNextSplittedFilePtr(destinationDirectoryPath, ++currentFileNumber, inputFilePath);
+				if(!feof(inputFilePtr) or startPos < bytesReaded) currentSplittedFilePtr = getNextSplittedFilePtr(destinationDirectoryPath, linesInOneFile, ++currentFileNumber, inputFilePath);
 			}
 		}
 		// Если прочитали весь файл, который мы делим, закрываем текущий файл для записи (он будет неполным и последним)
