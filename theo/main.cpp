@@ -14,7 +14,7 @@ int main(int argc, const char** argv) {
         OPT_END(),
     };
     argparse_init(&argparse, options, usages, ARGPARSE_STOP_AT_NON_OPTION);
-    argparse_describe(&argparse, "\nFastest and most efficient database processing soft.", "\nCreated by Theo <Telegram: @just_temp>");
+    argparse_describe(&argparse, "\nFastest and most efficient database processing soft.", "\nCreated by Theo <Telegram: @just_temp | https://github.com/Theodikes>");
     argc = argparse_parse(&argparse, argc, argv);
     if (argc < 1) {
         argparse_usage(&argparse);
