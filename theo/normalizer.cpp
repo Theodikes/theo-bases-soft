@@ -23,7 +23,7 @@ FILE* getNormalizedBaseFilePtr(string pathToResultFolder, string pathToBaseFile)
 
 /*Функция проверяет строку из базы на соответствие требуемым параметрам. Строка должна содержать валидный емейл,
 разделитель ":" и пароль, длина которого находится в заданном диапазоне. */
-bool isBaseStringSatisfyingConditions(char* string, int minPasswordLength, int maxPasswordLength, bool checkAscii, re_t emailRegex, re_t passwordRegex) {
+bool isBaseStringSatisfyingConditions(char* string, int minPasswordLength, int maxPasswordLength, bool checkAscii, regex* emailRegex, regex* passwordRegex) {
 	bool hasDelimeter = false;
 	bool hasEmailSign = false;
 	bool hasDotAfterEmailsSign = false; // Есть ли точка в емейле после символа '@'
@@ -73,19 +73,9 @@ bool isBaseStringSatisfyingConditions(char* string, int minPasswordLength, int m
 
 	if (!hasEmailSign or !hasDelimeter or emailSignNumber != 1 or !hasDotAfterEmailsSign) return false;
 	
-	if (emailRegex != NULL) {
-		char* email = new char[emailLength + (ushortest) 1];
-		memcpy(email, string, emailLength);
-		email[emailLength] = '\0';
-		int _ = re_matchp(emailRegex, email, &hasRegexpMatched);
-		delete[] email;
-		if (!hasRegexpMatched) return false;
-	}
+	if (emailRegex != NULL and not regex_search(string, &string[emailLength], *emailRegex)) return false;
 
-	if (passwordRegex != NULL) {
-		int _ = re_matchp(emailRegex, passwordStartPointer, &hasRegexpMatched);
-		if (!hasRegexpMatched) return false;
-	}
+	if (passwordRegex != NULL and not regex_search(passwordStartPointer, passwordStartPointer + passwordLength, *passwordRegex))return false;
 
 	return true;
 }
@@ -97,12 +87,12 @@ static const char* const usages[] = {
 };
 
 int normalize(int argc, const char** argv) {
-	char* pathToResultFolder = NULL;
+	const char* pathToResultFolder = ".";
 	FILE* mergedResultFile = NULL;
 	char* emailRegexString = NULL;
 	char* passwordRegexString = NULL;
-	re_t emailRegexPattern = NULL;
-	re_t passwordRegexPattern = NULL;
+	regex emailRegexPattern, *emailRegexPatternPtr = NULL;
+	regex passwordRegexPattern, * passwordRegexPatternPtr = NULL;
 	int minPasswordLength = 3;
 	int maxPasswordLength = 40; // Все строки с паролем длиннее будут игнорироваться
 	int checkAscii = false; // На самом деле bool...
@@ -111,7 +101,7 @@ int normalize(int argc, const char** argv) {
 	struct argparse_option options[] = {
 		OPT_HELP(),
 		OPT_GROUP("Basic options"),
-		OPT_STRING('d', "destination", &pathToResultFolder, "absolute or relative path to result folder"),
+		OPT_STRING('d', "destination", &pathToResultFolder, "absolute or relative path to result folder (default: current directory"),
 		OPT_STRING('e', "email-regex", &emailRegexString, "Regular expression for filtering emails (up to 30 characters)"),
 		OPT_STRING('p', "password-regex", &passwordRegexString, "Regular expression for filtering passwords (up to 30 characters)"),
 		OPT_INTEGER(0, "min", &minPasswordLength, "minimum password length"),
@@ -145,21 +135,21 @@ int normalize(int argc, const char** argv) {
 	}
 
 	if (emailRegexString != NULL) {
-		emailRegexPattern = re_compile(emailRegexString);
-
-		if (emailRegexPattern == NULL) {
+		if(not isValidRegex(emailRegexString)) {
 			cout << "Error: invalid email regular expression" << endl;
 			exit(1);
 		}
+		emailRegexPattern = regex(emailRegexString);
+		emailRegexPatternPtr = &emailRegexPattern;
 	}
 
 	if (passwordRegexString != NULL) {
-		passwordRegexPattern = re_compile(passwordRegexString);
-
-		if (passwordRegexPattern == NULL) {
+		if(not isValidRegex(passwordRegexString)) {
 			cout << "Error: invalid password regular expression" << endl;
 			exit(1);
 		}
+		passwordRegexPattern = regex(passwordRegexString);
+		passwordRegexPatternPtr = &passwordRegexPattern;
 	}
 
 	if (needMerge) mergedResultFile = fopen(path_join(pathToResultFolder, "normalized_merged.txt"), "wb+");
@@ -182,7 +172,7 @@ int normalize(int argc, const char** argv) {
 		если соответствует - записываем в итоговый файл с нормализованной базой */
 		char str[1024];
 		while (fgets(str, 1023, baseFilePointer)) {
-			if(isBaseStringSatisfyingConditions(str, minPasswordLength, maxPasswordLength, checkAscii, emailRegexPattern, passwordRegexPattern)) fputs(str, needMerge ? mergedResultFile : normalizedBaseFilePtr);
+			if(isBaseStringSatisfyingConditions(str, minPasswordLength, maxPasswordLength, checkAscii, emailRegexPatternPtr, passwordRegexPatternPtr)) fputs(str, needMerge ? mergedResultFile : normalizedBaseFilePtr);
 		}
 		
 		fclose(baseFilePointer);
