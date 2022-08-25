@@ -104,3 +104,7 @@ bool isValidRegex(const char* regularExpression) {
 	}
 	return true;
 }
+
+string getWorkingDirectoryPath() {
+	return fs::current_path().string();
+}

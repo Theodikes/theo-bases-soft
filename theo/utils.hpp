@@ -66,4 +66,7 @@ bool isDirectory(const char* path);
 
 // Является ли регулярное выражение (переданное строкой) валидным
 bool isValidRegex(const char* regularExpression);
+
+// Возвращает строку, содержащую путь к текущец директории (откуда вызвана программа, исполняемый файл)
+string getWorkingDirectoryPath();
 #endif // !MY_UTILS
