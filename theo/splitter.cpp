@@ -3,16 +3,10 @@
 /* Читает буфер побайтово, считая строки, пока remainingStrings не станет 0. Тогда перестаёт считать и возвращает
 позицию начала следующей строки в буфере. Если же прочитан весь буфер, но нужного количества строк не набралось,
 возвращает позицию последнего элемента в буфере. */
-size_t readBufferByLinesUntilCount(char* buffer, size_t buflen, size_t startBufIndex, size_t* remainingStrings) {
-	for (size_t i = startBufIndex; i < buflen; i++) if (buffer[i] == 10 and !-- * remainingStrings) return i + 1;
-	return buflen;
-}
+size_t readBufferByLinesUntilCount(char* buffer, size_t buflen, size_t startBufIndex, size_t* remainingStrings);
 
-FILE* getNextSplittedFilePtr(const char* destinationDirectory, size_t linesInOneFile, size_t currentFileNumber, const char* inputFilePath) {
-	string resultFilenameWithExtension = getFileNameWithoutExtension(inputFilePath) + "_" + to_string(linesInOneFile) + + "_" + to_string(currentFileNumber) + ".txt";
-	string pathToSplittedFile = joinPaths(destinationDirectory, resultFilenameWithExtension);
-	return fopen(pathToSplittedFile.c_str(), "wb+");
-}
+// Создаёт следующий по счёту файл с N-ным количеством строк, открывает в режиме записи и возвращает указатель на него
+FILE* getNextSplittedFilePtr(const char* destinationDirectory, size_t linesInOneFile, size_t currentFileNumber, const char* inputFilePath);
 
 // Опции для ввода аргументов вызова программы из cmd, показыаемые пользователю при использовании флага --help или -h
 static const char* const usages[] = {
@@ -127,4 +121,15 @@ int split(int argc, const char** argv) {
 	cout << "\nFile splitted successfully! Execution time: " << chrono::duration_cast<std::chrono::seconds>(end - begin).count() << "[s]\n" << endl;
 
 	return ERROR_SUCCESS;
+}
+
+size_t readBufferByLinesUntilCount(char* buffer, size_t buflen, size_t startBufIndex, size_t* remainingStrings) {
+	for (size_t i = startBufIndex; i < buflen; i++) if (buffer[i] == 10 and !-- * remainingStrings) return i + 1;
+	return buflen;
+}
+
+FILE* getNextSplittedFilePtr(const char* destinationDirectory, size_t linesInOneFile, size_t currentFileNumber, const char* inputFilePath) {
+	string resultFilenameWithExtension = getFileNameWithoutExtension(inputFilePath) + "_" + to_string(linesInOneFile) + +"_" + to_string(currentFileNumber) + ".txt";
+	string pathToSplittedFile = joinPaths(destinationDirectory, resultFilenameWithExtension);
+	return fopen(pathToSplittedFile.c_str(), "wb+");
 }

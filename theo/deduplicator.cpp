@@ -3,61 +3,15 @@
 // Хранилище для всех хешей уникальных строк
 static robin_hood::unordered_flat_set<ull> stringHashes;
 
-
 // По хешу определяет, была ли уже такая строка, если не было - добавляет её в итоговый буфер и меняет переменную с длиной итогового буфера
-void addStringToDestinationBufferCheckingHash(ull stringHash, char* sourceBuffer, size_t sourceBufferPos, size_t stringStartPosInSourceBuffer, char* destinationBuffer, size_t* destinationBufferStringStartPosPtr) {
-    if (stringHashes.contains(stringHash)) return; // Если хеш строки уже присутствует в таблице, добавлять его снова не надо
-
-    stringHashes.insert(stringHash); // Добавляем в хеш-таблицу хеш строки для последующих проверок
-    size_t currentStringLength = sourceBufferPos - stringStartPosInSourceBuffer; // Вычисляем длину текущей строки
-    // Сохраняем строку в итоговый буфер, копируя напрямую из изначального буфера
-    memcpy(&destinationBuffer[*destinationBufferStringStartPosPtr], &sourceBuffer[stringStartPosInSourceBuffer], currentStringLength);
-    
-    // Вычисляем позицию конца в итоговом буфере и изменяем значение переменной, указывающей на начало следующей строки 
-    // в итоговом буфере, по указателю, чтобы при новом вызове функции сразу было верное значение
-    *destinationBufferStringStartPosPtr += currentStringLength;
-}
+void addStringToDestinationBufferCheckingHash(ull stringHash, char* sourceBuffer, size_t sourceBufferPos, size_t stringStartPosInSourceBuffer, char* destinationBuffer, size_t* destinationBufferStringStartPosPtr);
 
 /* Считывает входной буфер посимвольно, хеширует каждую считанную строку, уникальные записывает в итоговый буфер
 Если остался незаконченный кусок строки из входного файла в буфере, переносит его в начало буфера и возвращает индекс
 конца этой строки в изменённом входном буфере. 
 Так же, по ходу добавления уникальных строк в итоговый буфер изменяет по указателю его длину в байтах. По окончанию 
 работы функции в переменной, на которую указывает resultBufferLengthPtr, находится актуальная длина итогового буфера */
-size_t processBufferLineByLine(char* buffer, size_t buflen, char* resultBuffer, size_t* resultBufferLengthPtr, bool hasEof) {
-    // Изначальное оптимальное значения для хеширования символов - 5381 (почему так - смотреть http://www.cse.yorku.ca/~oz/hash.html)
-    ull hashStartValue = 5381, currentHash = hashStartValue;
-    // Индекс начала текущей строки в буфере со входными данными, чтобы впоследствии можно было скопировать из него всю строку
-    size_t currentStringStartPosInInputBufferIdx = 0;
-    // Пробегаемся по каждому символу буфера
-    for (size_t bufferPos = 0; bufferPos < buflen; bufferPos++) {
-        /* Если код текущего символа равен 13 (символ - '\r', перенос каретки), то пропускаем его без обработки и добавления в хеш,
-        * поскольку это незначащий символ и на представление строки не влияет, а используется как вспомогательный для разделителя
-        * строк в Windows (разделение строк там не '\n', а '\r\n') */
-        if (buffer[bufferPos] == 13) continue;
-        // Если это символ переноса строки, надо строку обработать, хеш проверить и если его ещё не было, строку записать
-        if (buffer[bufferPos] == 10) {
-            // Проверяем зеш и записываем строку в итоговый буфер, а также меняем указатель конца итогового буфера, если строка уникальна
-            addStringToDestinationBufferCheckingHash(currentHash, buffer, bufferPos, currentStringStartPosInInputBufferIdx, resultBuffer, resultBufferLengthPtr);
-            // Устанавливаем корректное значение начала новой строки во входном буфере, который мы читаем
-            currentStringStartPosInInputBufferIdx = bufferPos + 1;
-            // Сбрасываем хеш до значения инициализации, так как высчитывать хеш переноса строки нет смысла
-            currentHash = hashStartValue;
-            continue;
-        }
-        // Высчитываем хеш строки, внося в него влияние текущего символа (видоизменяем значение хеша в зависимости от символа)
-        currentHash = ((currentHash << 5) + currentHash) + buffer[bufferPos];
-    }
-    //  Если символ переноса последний в буфере - строка уже была добавлена в итоговый буфер ранее, её не рассматриваем
-    if (buffer[buflen - 1] == '\n') return 0;
-    // Если конец файла добавляем текущую строку в итоговый буфер (поскольку это точно полная строка, даже если нет символа переноса)
-    if (hasEof) {
-        addStringToDestinationBufferCheckingHash(currentHash, buffer, buflen, currentStringStartPosInInputBufferIdx, resultBuffer, resultBufferLengthPtr);
-        return 0;
-    }
-    /* Если не конец файла, и при этом во входном буфере остался кусок строки - возвращаем её длину, чтобы в передвинуть указатель
-    в файле на нужное место и в следующий раз начать чтение с этой же строки*/
-    return  buflen - currentStringStartPosInInputBufferIdx;
-}
+size_t processBufferLineByLine(char* buffer, size_t buflen, char* resultBuffer, size_t* resultBufferLengthPtr, bool hasEof);
 
 // Опции для ввода аргументов вызова программы из cmd, показыаемые пользователю при использовании флага --help или -h
 static const char* const usages[] = {
@@ -150,4 +104,55 @@ int deduplicate(int argc, const char** argv) {
     cout << "\nFile deduplicated successfully! Execution time: " << chrono::duration_cast<std::chrono::seconds>(end - begin).count() << "[s]\n" << endl;
 
 	return ERROR_SUCCESS;
+}
+
+
+void addStringToDestinationBufferCheckingHash(ull stringHash, char* sourceBuffer, size_t sourceBufferPos, size_t stringStartPosInSourceBuffer, char* destinationBuffer, size_t* destinationBufferStringStartPosPtr) {
+    if (stringHashes.contains(stringHash)) return; // Если хеш строки уже присутствует в таблице, добавлять его снова не надо
+
+    stringHashes.insert(stringHash); // Добавляем в хеш-таблицу хеш строки для последующих проверок
+    size_t currentStringLength = sourceBufferPos - stringStartPosInSourceBuffer; // Вычисляем длину текущей строки
+    // Сохраняем строку в итоговый буфер, копируя напрямую из изначального буфера
+    memcpy(&destinationBuffer[*destinationBufferStringStartPosPtr], &sourceBuffer[stringStartPosInSourceBuffer], currentStringLength);
+
+    // Вычисляем позицию конца в итоговом буфере и изменяем значение переменной, указывающей на начало следующей строки 
+    // в итоговом буфере, по указателю, чтобы при новом вызове функции сразу было верное значение
+    *destinationBufferStringStartPosPtr += currentStringLength;
+}
+
+
+size_t processBufferLineByLine(char* buffer, size_t buflen, char* resultBuffer, size_t* resultBufferLengthPtr, bool hasEof) {
+    // Изначальное оптимальное значения для хеширования символов - 5381 (почему так - смотреть http://www.cse.yorku.ca/~oz/hash.html)
+    ull hashStartValue = 5381, currentHash = hashStartValue;
+    // Индекс начала текущей строки в буфере со входными данными, чтобы впоследствии можно было скопировать из него всю строку
+    size_t currentStringStartPosInInputBufferIdx = 0;
+    // Пробегаемся по каждому символу буфера
+    for (size_t bufferPos = 0; bufferPos < buflen; bufferPos++) {
+        /* Если код текущего символа равен 13 (символ - '\r', перенос каретки), то пропускаем его без обработки и добавления в хеш,
+        * поскольку это незначащий символ и на представление строки не влияет, а используется как вспомогательный для разделителя
+        * строк в Windows (разделение строк там не '\n', а '\r\n') */
+        if (buffer[bufferPos] == 13) continue;
+        // Если это символ переноса строки, надо строку обработать, хеш проверить и если его ещё не было, строку записать
+        if (buffer[bufferPos] == 10) {
+            // Проверяем зеш и записываем строку в итоговый буфер, а также меняем указатель конца итогового буфера, если строка уникальна
+            addStringToDestinationBufferCheckingHash(currentHash, buffer, bufferPos, currentStringStartPosInInputBufferIdx, resultBuffer, resultBufferLengthPtr);
+            // Устанавливаем корректное значение начала новой строки во входном буфере, который мы читаем
+            currentStringStartPosInInputBufferIdx = bufferPos + 1;
+            // Сбрасываем хеш до значения инициализации, так как высчитывать хеш переноса строки нет смысла
+            currentHash = hashStartValue;
+            continue;
+        }
+        // Высчитываем хеш строки, внося в него влияние текущего символа (видоизменяем значение хеша в зависимости от символа)
+        currentHash = ((currentHash << 5) + currentHash) + buffer[bufferPos];
+    }
+    //  Если символ переноса последний в буфере - строка уже была добавлена в итоговый буфер ранее, её не рассматриваем
+    if (buffer[buflen - 1] == '\n') return 0;
+    // Если конец файла добавляем текущую строку в итоговый буфер (поскольку это точно полная строка, даже если нет символа переноса)
+    if (hasEof) {
+        addStringToDestinationBufferCheckingHash(currentHash, buffer, buflen, currentStringStartPosInInputBufferIdx, resultBuffer, resultBufferLengthPtr);
+        return 0;
+    }
+    /* Если не конец файла, и при этом во входном буфере остался кусок строки - возвращаем её длину, чтобы в передвинуть указатель
+    в файле на нужное место и в следующий раз начать чтение с этой же строки*/
+    return  buflen - currentStringStartPosInInputBufferIdx;
 }
