@@ -112,8 +112,12 @@ int normalize(int argc, const char** argv) {
 		OPT_END(),
 	};
 	struct argparse argparse;
-	argparse_init(&argparse, options, usages, 0);
+	argparse_init(&argparse, options, usages, ARGPARSE_STOP_AT_NON_OPTION);
 	int remainingArgumentsCount = argparse_parse(&argparse, argc, argv);
+	if (remainingArgumentsCount < 1) {
+		argparse_usage(&argparse);
+		return -1;
+	}
 
 	// Файлы для нормализации (set, чтобы избежать повторной обработки одних и тех же файлов)
 	robin_hood::unordered_flat_set<string> sourceFilesPaths;
