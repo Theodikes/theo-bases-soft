@@ -48,13 +48,6 @@ char* path_join(const char* dir, const char* file) {
 	return buf;
 }
 
-const char* getFilenameFromPath(const char* pathToFile) {
-	const char* fileNameWithExtension;
-	(fileNameWithExtension = strrchr(pathToFile, '\\')) ? ++fileNameWithExtension : (fileNameWithExtension = pathToFile);
-
-	return fileNameWithExtension;
-}
-
 
 bool processSourceFileOrDirectory(robin_hood::unordered_flat_set<string>* textFilesPaths, const char* path)
 {
