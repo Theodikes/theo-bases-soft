@@ -1,5 +1,33 @@
-#include "utils.hpp"
+﻿#include "utils.hpp"
 #include "commands.hpp"
+
+/* Добавляем директорию, где находится исполняемый файл theo.exe, в Windows PATH, чтобы софт можно было
+* запускать откуда угодно с помозью консоли, просто вызвав команду 'theo' с аргументами */
+DWORD addExecutablePathToWindowsRegisrty() {
+    const char* programName = "THEO_SOFT"; // Имя программы в PATH, чтобы искать по нему при повторных запусках
+    string pathToDirectoryWithExecutable = getWorkingDirectoryPath(); 
+    HKEY registryHkey; // Ключ регистра для доступа к редактированию и чтению PATH, находящйеся в Windows Registry
+    DWORD ALREADY_DONE = 14; // Код возврата на тот случай, если исполняемый файл софта уже добавлен в PATH
+
+    // Проверяем, есть ли доступ к редактированию и чтению PATH из реестра, получаем ключ доступа registryKey
+    if (RegOpenKeyEx(HKEY_CURRENT_USER, "Environment", 0, KEY_ALL_ACCESS, &registryHkey) != ERROR_SUCCESS) {
+        // Если не получилось - показываем пользователю, что у софта недостаточно прав для работы с реестром
+        cout << "Cannot get access to Windows Registry" << endl;
+        return ERROR_ACCESS_DENIED; 
+    }
+
+    // Проверяем, может, софт уже был ранее добавлен в PATH, если да, больше ничего делать не надо, выходим из функции
+    if (RegQueryValueExA(registryHkey, programName, nullptr, nullptr, nullptr, nullptr) == ERROR_SUCCESS) return ALREADY_DONE;
+                             
+    // Пытаемся установить текущую директорию, в которой находится исполняемый файл софта, в Windows PATH
+    if (RegSetValueEx(registryHkey, programName, 0, REG_SZ, (BYTE*)pathToDirectoryWithExecutable.c_str(), pathToDirectoryWithExecutable.length()) != ERROR_SUCCESS) {
+        cout << "Cannot add program to PATH (to Windows regisrty)" << endl;
+        return ERROR_ACCESS_DENIED;
+    }
+    // Закрываем реестр после работы
+    RegCloseKey(registryHkey);
+    return ERROR_SUCCESS;
+}
 
 static const char* const usages[] = {
     "theo [global options] [command] [command options] [command args]",
@@ -7,6 +35,9 @@ static const char* const usages[] = {
 };
 
 int main(int argc, const char** argv) {
+    if (addExecutablePathToWindowsRegisrty() == ERROR_SUCCESS) 
+        cout << "\nProgram has been successfully added to the Windows PATH, now it can be called from anywhere by writing 'theo' in cmd!\n" << endl;
+
     struct argparse argparse;
     struct argparse_option options[] = {
         OPT_HELP(),
@@ -33,3 +64,4 @@ int main(int argc, const char** argv) {
     }
     return 0;
 }
+
