@@ -59,13 +59,13 @@ long long getFileSize(const char* pathToFile);
 ull getAvailableMemoryInBytes(void);
 
 // Существует ли что-либо по указанному пути
-bool isAnythingExistsByPath(const char* path);
+bool isAnythingExistsByPath(string path);
 
 // Является ли указанный путь путём к директории
-bool isDirectory(const char* path);
+bool isDirectory(string path);
 
 // Является ли регулярное выражение (переданное строкой) валидным
-bool isValidRegex(const char* regularExpression);
+bool isValidRegex(string regularExpression);
 
 // Возвращает строку, содержащую путь к текущец директории (откуда вызвана программа, исполняемый файл)
 string getWorkingDirectoryPath();

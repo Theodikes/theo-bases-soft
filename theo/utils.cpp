@@ -24,23 +24,20 @@ string path_join(string dirPath, string filePath) {
 
 bool processSourceFileOrDirectory(robin_hood::unordered_flat_set<string>* textFilesPaths, string path)
 {
-
-	DWORD dwAttributes = GetFileAttributes(path.c_str());
-	if (dwAttributes == INVALID_FILE_ATTRIBUTES) {
-		printf("File doesn`t exist: [%s]\n", path);
+	if (!isAnythingExistsByPath(path)) {
+		cout << "File doesn`t exist: [" << path <<  "]" << endl;
 		return false;
 	}
-	if (!(dwAttributes & FILE_ATTRIBUTE_DIRECTORY)) return addFileToSourceList(textFilesPaths, path);
+	if (!isDirectory(path)) return addFileToSourceList(textFilesPaths, path);
 
 	WIN32_FIND_DATA fdFile;
 	HANDLE hFind = NULL;
 
-	char sPath[2048];
-	sprintf(sPath, "%s\\*", path);
+	string searchPath = path + "\\*";
 
-	if ((hFind = FindFirstFile(sPath, &fdFile)) == INVALID_HANDLE_VALUE)
+	if ((hFind = FindFirstFile(searchPath.c_str(), &fdFile)) == INVALID_HANDLE_VALUE)
 	{
-		printf("Path to directory not found: [%s]\n", path);
+		cout << "Path to directory not found: [" << path << "]" << endl;;
 		return false;
 	}
 
@@ -76,7 +73,7 @@ size_t getLinesCountInText(char* bytes) {
 long long getFileSize(const char* pathToFile) {
 	WIN32_FILE_ATTRIBUTE_DATA fileData;
 	if (GetFileAttributesEx(pathToFile, GetFileExInfoStandard, &fileData))
-		return (static_cast<ull>(fileData.nFileSizeHigh) << sizeof(fileData.nFileSizeLow) * 8) |fileData.nFileSizeLow;
+		return (static_cast<ull>(fileData.nFileSizeHigh) << sizeof(fileData.nFileSizeLow) * 8) | fileData.nFileSizeLow;
 	return -1;
 }
 
@@ -87,15 +84,15 @@ ull getAvailableMemoryInBytes(void) {
 	return ms.ullAvailPhys;
 }
 
-bool isAnythingExistsByPath(const char* path) {
-	return GetFileAttributes(path) != INVALID_FILE_ATTRIBUTES;
+bool isAnythingExistsByPath(string path) {
+	return GetFileAttributes(path.c_str()) != INVALID_FILE_ATTRIBUTES;
 }
 
-bool isDirectory(const char* path) {
-	return GetFileAttributes(path) & FILE_ATTRIBUTE_DIRECTORY;
+bool isDirectory(string path) {
+	return GetFileAttributes(path.c_str()) & FILE_ATTRIBUTE_DIRECTORY;
 }
 
-bool isValidRegex(const char* regularExpression) {
+bool isValidRegex(string regularExpression) {
 	try {
 		regex re(regularExpression);
 	}
