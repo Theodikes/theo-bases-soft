@@ -10,7 +10,7 @@ size_t readBufferByLinesUntilCount(char* buffer, size_t buflen, size_t startBufI
 
 FILE* getNextSplittedFilePtr(const char* destinationDirectory, size_t linesInOneFile, size_t currentFileNumber, const char* inputFilePath) {
 	string resultFilenameWithExtension = getFileNameWithoutExtension(inputFilePath) + "_" + to_string(linesInOneFile) + + "_" + to_string(currentFileNumber) + ".txt";
-	string pathToSplittedFile = path_join(destinationDirectory, resultFilenameWithExtension);
+	string pathToSplittedFile = joinPaths(destinationDirectory, resultFilenameWithExtension);
 	return fopen(pathToSplittedFile.c_str(), "wb+");
 }
 

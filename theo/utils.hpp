@@ -36,7 +36,7 @@ bool startsWith(const char* pre, const char* str);
 bool endsWith(const char* str, const char* suffix);
 
 // Функция для объединения абсолютного пути к папке и имени файла в абсолютный путь к файлу. Возвращает итоговый путь
-string path_join(string dirPath, string filePath);
+string joinPaths(string dirPath, string filePath);
 
 // Функция принимает в качестве аргумента валидный путь к файлу и возвращает имя файла (без расширения)
 string getFileNameWithoutExtension(string pathToFile);

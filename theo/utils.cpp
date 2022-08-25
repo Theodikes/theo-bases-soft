@@ -17,7 +17,7 @@ bool endsWith(const char* str, const char* suffix)
 	return strncmp(str + lenstr - lensuffix, suffix, lensuffix) == 0;
 }
 
-string path_join(string dirPath, string filePath) {
+string joinPaths(string dirPath, string filePath) {
 	return (fs::path(dirPath) / fs::path(filePath)).string();
 }
 
@@ -44,7 +44,7 @@ bool processSourceFileOrDirectory(robin_hood::unordered_flat_set<string>* textFi
 	do{
 		if (strcmp(fdFile.cFileName, ".") != 0
 			and strcmp(fdFile.cFileName, "..") != 0) {
-		processSourceFileOrDirectory(textFilesPaths, path_join(path, fdFile.cFileName));
+		processSourceFileOrDirectory(textFilesPaths, joinPaths(path, fdFile.cFileName));
 		}
 	} while (FindNextFile(hFind, &fdFile));
 
