@@ -59,9 +59,6 @@ bool processSourceFileOrDirectory(robin_hood::unordered_flat_set<string>*, const
 // Заносит файл по указанному пути, если он имеет расширение .txt, в список файлов для обработки (нормализации, дедупликации etc)
 bool addFileToSourceList(robin_hood::unordered_flat_set<string>*, const char* filePath);
 
-// Хеширование строки, на выходе уникальное число
-ull get_hash(char* s);
-
 // Считает количество строк, разделённых символами переноса строк, в тексте. Каждая строка должна заканчиваться символом \n
 size_t getLinesCountInText(char* bytes);
 

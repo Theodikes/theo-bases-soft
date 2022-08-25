@@ -100,14 +100,6 @@ string getFileNameWithoutExtension(string pathToFile) {
 	return filesystem::path(pathToFile).stem().string();
 }
 
-ull get_hash(char* s) {
-	ull h = 5381;
-	int c;
-	while ((c = *s++))
-		h = ((h << 5) + h) + c;
-	return h;
-};
-
 
 size_t getLinesCountInText(char* bytes) {
 	size_t stringsCount = 0;
