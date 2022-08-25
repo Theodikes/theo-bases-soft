@@ -9,50 +9,23 @@ bool startsWith(const char* str, const char* prefix)
 
 bool endsWith(const char* str, const char* suffix)
 {
-	if (!str or !suffix)
-		return 0;
+	if (!str or !suffix) return 0;
 	size_t lenstr = strlen(str);
 	size_t lensuffix = strlen(suffix);
-	if (lensuffix > lenstr)
-		return 0;
+	if (lensuffix > lenstr) return 0;
+
 	return strncmp(str + lenstr - lensuffix, suffix, lensuffix) == 0;
 }
 
-char* path_join(const char* dir, const char* file) {
-
-	size_t size = strlen(dir) + strlen(file) + 2;
-	char* buf = new char[size];
-	if (NULL == buf) return NULL;
-
-	strcpy(buf, dir);
-
-	// add the sep if necessary
-	if (!endsWith(dir, PATH_JOIN_SEPARATOR)) {
-		strcat(buf, PATH_JOIN_SEPARATOR);
-	}
-
-	// remove the sep if necessary
-	if (startsWith(file, PATH_JOIN_SEPARATOR)) {
-		char* filecopy = _strdup(file);
-		if (NULL == filecopy) {
-			delete[] buf;
-			return NULL;
-		}
-		strcat(buf, ++filecopy);
-		free(--filecopy);
-	}
-	else {
-		strcat(buf, file);
-	}
-
-	return buf;
+string path_join(string dirPath, string filePath) {
+	return (fs::path(dirPath) / fs::path(filePath)).string();
 }
 
 
-bool processSourceFileOrDirectory(robin_hood::unordered_flat_set<string>* textFilesPaths, const char* path)
+bool processSourceFileOrDirectory(robin_hood::unordered_flat_set<string>* textFilesPaths, string path)
 {
 
-	DWORD dwAttributes = GetFileAttributes(path);
+	DWORD dwAttributes = GetFileAttributes(path.c_str());
 	if (dwAttributes == INVALID_FILE_ATTRIBUTES) {
 		printf("File doesn`t exist: [%s]\n", path);
 		return false;
@@ -83,9 +56,9 @@ bool processSourceFileOrDirectory(robin_hood::unordered_flat_set<string>* textFi
 	return true;
 }
 
-bool addFileToSourceList(robin_hood::unordered_flat_set<string>* sourceTextFilesPaths, const char* filePath) {
-	if (!(endsWith(filePath, ".txt"))) return false;
-	(*sourceTextFilesPaths).insert(string(filePath));
+bool addFileToSourceList(robin_hood::unordered_flat_set<string>* sourceTextFilesPaths, string filePath) {
+	if (!(endsWith(filePath.c_str(), ".txt"))) return false;
+	(*sourceTextFilesPaths).insert(filePath);
 	return true;
 }
 

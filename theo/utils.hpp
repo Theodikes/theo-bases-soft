@@ -18,13 +18,6 @@ namespace fs = std::filesystem;
 static constexpr unsigned OPTIMAL_DISK_CHUNK_SIZE = 1024 * 1024 * 64;
 
 
-// Разделители путей в различных системах
-#ifdef _WIN32
-#define PATH_JOIN_SEPARATOR   "\\"
-#else
-#define PATH_JOIN_SEPARATOR   "/"
-#endif
-
 // Я люблю очевилные и чистые условия, как в питоне, извините
 #define and &&
 #define or ||
@@ -43,7 +36,7 @@ bool startsWith(const char* pre, const char* str);
 bool endsWith(const char* str, const char* suffix);
 
 // Функция для объединения абсолютного пути к папке и имени файла в абсолютный путь к файлу. Возвращает итоговый путь
-char* path_join(const char* dir, const char* file);
+string path_join(string dirPath, string filePath);
 
 // Функция принимает в качестве аргумента валидный путь к файлу и возвращает имя файла (без расширения)
 string getFileNameWithoutExtension(string pathToFile);
@@ -51,10 +44,10 @@ string getFileNameWithoutExtension(string pathToFile);
 /* Добавляет в массив путей к файлам, который передан в первом аргументе, все .txt файлы, находящиеся в директории,
 путь к которой передан вторым аргументом, и её поддиректориях, либо сам файл, если вторым аргументом передан путь
 не к директории, а к файлу */
-bool processSourceFileOrDirectory(robin_hood::unordered_flat_set<string>*, const char* path);
+bool processSourceFileOrDirectory(robin_hood::unordered_flat_set<string>*, string path);
 
 // Заносит файл по указанному пути, если он имеет расширение .txt, в список файлов для обработки (нормализации, дедупликации etc)
-bool addFileToSourceList(robin_hood::unordered_flat_set<string>*, const char* filePath);
+bool addFileToSourceList(robin_hood::unordered_flat_set<string>*, string filePath);
 
 // Считает количество строк, разделённых символами переноса строк, в тексте. Каждая строка должна заканчиваться символом \n
 size_t getLinesCountInText(char* bytes);

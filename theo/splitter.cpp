@@ -10,8 +10,8 @@ size_t readBufferByLinesUntilCount(char* buffer, size_t buflen, size_t startBufI
 
 FILE* getNextSplittedFilePtr(const char* destinationDirectory, size_t linesInOneFile, size_t currentFileNumber, const char* inputFilePath) {
 	string resultFilenameWithExtension = getFileNameWithoutExtension(inputFilePath) + "_" + to_string(linesInOneFile) + + "_" + to_string(currentFileNumber) + ".txt";
-	const char* pathToSplittedFile = path_join(destinationDirectory, resultFilenameWithExtension.c_str());
-	return fopen(pathToSplittedFile, "wb+");
+	string pathToSplittedFile = path_join(destinationDirectory, resultFilenameWithExtension);
+	return fopen(pathToSplittedFile.c_str(), "wb+");
 }
 
 // Опции для ввода аргументов вызова программы из cmd, показыаемые пользователю при использовании флага --help или -h
