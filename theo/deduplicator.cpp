@@ -77,13 +77,11 @@ int deduplicate(int argc, const char** argv) {
         exit(1);
     }
 
-    // Текущее количество памяти в байтах, доступной на запись из файла, во входном буфере.
-    size_t currentInputBufferAvailableWriteSize = countBytesToReadInOneIteration;
     while (!feof(inputFile)) {
         size_t resultBufferLength = 0; // Длина итогового буфера с уникальными строками в байтах
         /* Считываем нужное количество байт из входного файла в буфер, количество реально считаных байт записывается 
         *  в переменную, нужную на случай, если файл закончился, и реально считалось меньше байт, чем предполагалось */
-        size_t bytesReadedCount = fread(inputBuffer, sizeof(char), currentInputBufferAvailableWriteSize, inputFile);
+        size_t bytesReadedCount = fread(inputBuffer, sizeof(char), countBytesToReadInOneIteration, inputFile);
         /* Читаем буфер посимвольно, генерируем хеши для строк, проверяем на уникальность, записываем уникальные строки
         * последовательно в итоговый буфер и получаем размер отступа назад для чтения в следующий раз (если буфер был
         * обрезан на середине какой-то строки, отступ ненулевой, чтобы прочесть строку полностью)*/
