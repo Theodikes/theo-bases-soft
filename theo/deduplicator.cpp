@@ -7,8 +7,8 @@ static robin_hood::unordered_flat_set<ull> stringHashes;
 void addStringToDestinationBufferCheckingHash(ull stringHash, char* sourceBuffer, size_t sourceBufferPos, size_t stringStartPosInSourceBuffer, char* destinationBuffer, size_t* destinationBufferStringStartPosPtr);
 
 /* Считывает входной буфер посимвольно, хеширует каждую считанную строку, уникальные записывает в итоговый буфер
-Если остался незаконченный кусок строки из входного файла в буфере, переносит его в начало буфера и возвращает индекс
-конца этой строки в изменённом входном буфере. 
+Если остался незаконченный кусок строки из входного файла в буфере, возвращает отступ (количество байт) от конца буфера
+до начала (индекса первого символа) этой строки.
 Так же, по ходу добавления уникальных строк в итоговый буфер изменяет по указателю его длину в байтах. По окончанию 
 работы функции в переменной, на которую указывает resultBufferLengthPtr, находится актуальная длина итогового буфера */
 size_t processBufferLineByLine(char* buffer, size_t buflen, char* resultBuffer, size_t* resultBufferLengthPtr, bool hasEof);
@@ -87,12 +87,13 @@ int deduplicate(int argc, const char** argv) {
         /* Читаем буфер посимвольно, генерируем хеши для строк, проверяем на уникальность, записываем уникальные строки
         * последовательно в итоговый буфер и получаем размер отступа назад для чтения в следующий раз (если буфер был
         * обрезан на середине какой-то строки, отступ ненулевой, чтобы прочесть строку полностью)*/
-        size_t inputBufferWriteOffset = processBufferLineByLine(inputBuffer, bytesReadedCount, resultBuffer, &resultBufferLength, feof(inputFile));
+        size_t remainingStringPartLength = processBufferLineByLine(inputBuffer, bytesReadedCount, resultBuffer, &resultBufferLength, feof(inputFile));
         // Записываем данные из итогового буфера с уникальными строками в файл вывода
         fwrite(resultBuffer, sizeof(char), resultBufferLength, resultFile);
-        /* Если в этом считанном входном буфере осталась незаконченная строка, обрезанная при считывании побайтово, делаем отступ
-         * в файле назад на длину оставшегося в буфере неполного куска строки, чтобы при следующем fread обработать её полностью */
-        if (inputBufferWriteOffset) fseek(inputFile, -static_cast<long>(inputBufferWriteOffset), SEEK_CUR);
+        /* Если в этом считанном входном буфере осталась незаконченная строка, обрезанная при считывании побайтово
+         * делаем отступ в файле назад на длину оставшегося в буфере неполного куска строки, 
+         * чтобы при следующем fread обработать её полностью */
+        if (remainingStringPartLength) fseek(inputFile, -static_cast<long>(remainingStringPartLength), SEEK_CUR);
     }
     // Освобождение памяти буферов и закрытие файлов
     delete[] inputBuffer;
