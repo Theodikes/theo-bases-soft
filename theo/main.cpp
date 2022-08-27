@@ -58,7 +58,7 @@ DWORD addExecutablePathToWindowsRegisrty() {
     if (RegQueryValueExA(registryHkey, programName, nullptr, nullptr, nullptr, nullptr) == ERROR_SUCCESS) return ALREADY_DONE;
 
     // Пытаемся установить текущую директорию, в которой находится исполняемый файл софта, в Windows PATH
-    if (RegSetValueEx(registryHkey, programName, 0, REG_SZ, (BYTE*)pathToDirectoryWithExecutable.c_str(), pathToDirectoryWithExecutable.length()) != ERROR_SUCCESS) {
+    if (RegSetValueEx(registryHkey, programName, 0, REG_SZ, (BYTE*)pathToDirectoryWithExecutable.c_str(), static_cast<DWORD>(pathToDirectoryWithExecutable.length())) != ERROR_SUCCESS) {
         cout << "Cannot add program to PATH (to Windows regisrty)" << endl;
         return ERROR_ACCESS_DENIED;
     }
