@@ -11,7 +11,7 @@ void addStringToDestinationBufferCheckingHash(ull stringHash, char* sourceBuffer
 до начала (индекса первого символа) этой строки.
 Так же, по ходу добавления уникальных строк в итоговый буфер изменяет по указателю его длину в байтах. По окончанию 
 работы функции в переменной, на которую указывает resultBufferLengthPtr, находится актуальная длина итогового буфера */
-size_t processBufferLineByLine(char* buffer, size_t buflen, char* resultBuffer, size_t* resultBufferLengthPtr, bool hasEof);
+size_t deduplicateBufferLineByLine(char* buffer, size_t buflen, char* resultBuffer, size_t* resultBufferLengthPtr, bool isEndOfInputFile);
 
 // Опции для ввода аргументов вызова программы из cmd, показыаемые пользователю при использовании флага --help или -h
 static const char* const usages[] = {
@@ -87,7 +87,7 @@ int deduplicate(int argc, const char** argv) {
         /* Читаем буфер посимвольно, генерируем хеши для строк, проверяем на уникальность, записываем уникальные строки
         * последовательно в итоговый буфер и получаем размер отступа назад для чтения в следующий раз (если буфер был
         * обрезан на середине какой-то строки, отступ ненулевой, чтобы прочесть строку полностью)*/
-        size_t remainingStringPartLength = processBufferLineByLine(inputBuffer, bytesReadedCount, resultBuffer, &resultBufferLength, feof(inputFile));
+        size_t remainingStringPartLength = deduplicateBufferLineByLine(inputBuffer, bytesReadedCount, resultBuffer, &resultBufferLength, feof(inputFile));
         // Записываем данные из итогового буфера с уникальными строками в файл вывода
         fwrite(resultBuffer, sizeof(char), resultBufferLength, resultFile);
         /* Если в этом считанном входном буфере осталась незаконченная строка, обрезанная при считывании побайтово
@@ -122,7 +122,7 @@ void addStringToDestinationBufferCheckingHash(ull stringHash, char* sourceBuffer
 }
 
 
-size_t processBufferLineByLine(char* buffer, size_t buflen, char* resultBuffer, size_t* resultBufferLengthPtr, bool hasEof) {
+size_t deduplicateBufferLineByLine(char* buffer, size_t buflen, char* resultBuffer, size_t* resultBufferLengthPtr, bool isEndOfInputFile) {
     // Изначальное оптимальное значения для хеширования символов - 5381 (почему так - смотреть http://www.cse.yorku.ca/~oz/hash.html)
     ull hashStartValue = 5381, currentHash = hashStartValue;
     // Индекс начала текущей строки в буфере со входными данными, чтобы впоследствии можно было скопировать из него всю строку
@@ -149,7 +149,7 @@ size_t processBufferLineByLine(char* buffer, size_t buflen, char* resultBuffer, 
     //  Если символ переноса последний в буфере - строка уже была добавлена в итоговый буфер ранее, её не рассматриваем
     if (buffer[buflen - 1] == '\n') return 0;
     // Если конец файла добавляем текущую строку в итоговый буфер (поскольку это точно полная строка, даже если нет символа переноса)
-    if (hasEof) {
+    if (isEndOfInputFile) {
         addStringToDestinationBufferCheckingHash(currentHash, buffer, buflen, currentStringStartPosInInputBufferIdx, resultBuffer, resultBufferLengthPtr);
         return 0;
     }
