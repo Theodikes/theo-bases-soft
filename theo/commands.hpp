@@ -6,6 +6,7 @@ int normalize(int argc, const char** argv); // Команда для норма�
 int merge(int argc, const char** argv); // Команда для объединения файлов в один
 int split(int argc, const char** argv); // Команда для разделения файла на строки
 int deduplicate(int argc, const char** argv); // Команда для удаления совпадающих строк из файла
+int count(int argc, const char** argv);
 
 struct cmd_struct {
     const char* cmd;
@@ -20,7 +21,9 @@ static struct cmd_struct commands[] = {
     {"s", split},
     {"split", split},
     {"d", deduplicate},
-    {"dedup", deduplicate}
+    {"dedup", deduplicate},
+    {"c", count},
+    {"count", count}
 };
 
 static const char* const commandsDescription = "Commands:\n\
