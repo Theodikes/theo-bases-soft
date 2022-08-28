@@ -4,14 +4,14 @@
 static robin_hood::unordered_flat_set<ull> stringHashes;
 
 // По хешу определяет, была ли уже такая строка, если не было - добавляет её в итоговый буфер и меняет переменную с длиной итогового буфера
-void addStringToDestinationBufferCheckingHash(ull stringHash, char* sourceBuffer, size_t sourceBufferPos, size_t stringStartPosInSourceBuffer, char* destinationBuffer, size_t* destinationBufferStringStartPosPtr);
+static void addStringToDestinationBufferCheckingHash(ull stringHash, char* sourceBuffer, size_t sourceBufferPos, size_t stringStartPosInSourceBuffer, char* destinationBuffer, size_t* destinationBufferStringStartPosPtr);
 
 /* Считывает входной буфер посимвольно, хеширует каждую считанную строку, уникальные записывает в итоговый буфер
 Если остался незаконченный кусок строки из входного файла в буфере, возвращает отступ (количество байт) от конца буфера
 до начала (индекса первого символа) этой строки.
 Так же, по ходу добавления уникальных строк в итоговый буфер изменяет по указателю его длину в байтах. По окончанию 
 работы функции в переменной, на которую указывает resultBufferLengthPtr, находится актуальная длина итогового буфера */
-size_t deduplicateBufferLineByLine(char* buffer, size_t buflen, char* resultBuffer, size_t* resultBufferLengthPtr, bool isEndOfInputFile);
+static size_t deduplicateBufferLineByLine(char* buffer, size_t buflen, char* resultBuffer, size_t* resultBufferLengthPtr, bool isEndOfInputFile);
 
 // Опции для ввода аргументов вызова программы из cmd, показыаемые пользователю при использовании флага --help или -h
 static const char* const usages[] = {
@@ -106,7 +106,7 @@ int deduplicate(int argc, const char** argv) {
 }
 
 
-void addStringToDestinationBufferCheckingHash(ull stringHash, char* sourceBuffer, size_t sourceBufferPos, size_t stringStartPosInSourceBuffer, char* destinationBuffer, size_t* destinationBufferStringStartPosPtr) {
+static void addStringToDestinationBufferCheckingHash(ull stringHash, char* sourceBuffer, size_t sourceBufferPos, size_t stringStartPosInSourceBuffer, char* destinationBuffer, size_t* destinationBufferStringStartPosPtr) {
     if (stringHashes.contains(stringHash)) return; // Если хеш строки уже присутствует в таблице, добавлять его снова не надо
 
     stringHashes.insert(stringHash); // Добавляем в хеш-таблицу хеш строки для последующих проверок
@@ -120,7 +120,7 @@ void addStringToDestinationBufferCheckingHash(ull stringHash, char* sourceBuffer
 }
 
 
-size_t deduplicateBufferLineByLine(char* buffer, size_t buflen, char* resultBuffer, size_t* resultBufferLengthPtr, bool isEndOfInputFile) {
+static size_t deduplicateBufferLineByLine(char* buffer, size_t buflen, char* resultBuffer, size_t* resultBufferLengthPtr, bool isEndOfInputFile) {
     // Изначальное оптимальное значения для хеширования символов - 5381 (почему так - смотреть http://www.cse.yorku.ca/~oz/hash.html)
     ull hashStartValue = 5381, currentHash = hashStartValue;
     // Индекс начала текущей строки в буфере со входными данными, чтобы впоследствии можно было скопировать из него всю строку

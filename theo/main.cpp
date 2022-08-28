@@ -3,7 +3,7 @@
 
 /* Добавляет директорию, где находится исполняемый файл theo.exe, в Windows PATH, чтобы софт можно было
 * запускать откуда угодно с помозью консоли, просто вызвав команду 'theo' с аргументами */
-DWORD addExecutablePathToWindowsRegisrty();
+static DWORD addExecutablePathToWindowsRegisrty();
 
 static const char* const usages[] = {
     "theo [global options] [command] [command options] [command args]",
@@ -41,7 +41,7 @@ int main(int argc, const char** argv) {
     return 0;
 }
 
-DWORD addExecutablePathToWindowsRegisrty() {
+static DWORD addExecutablePathToWindowsRegisrty() {
     const char* programName = "THEO_SOFT"; // Имя программы в PATH, чтобы искать по нему при повторных запусках
     string pathToDirectoryWithExecutable = getWorkingDirectoryPath();
     HKEY registryHkey; // Ключ регистра для доступа к редактированию и чтению PATH, находящйеся в Windows Registry

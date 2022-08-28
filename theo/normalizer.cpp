@@ -1,7 +1,7 @@
 ﻿#include "utils.hpp"
 
 // Возможные типы первой части строк в файле: емейлы (базы email:pass), номера (num:pass) и логины (log:pass)
-enum class StringFirstPartTypes {Email, Number, Login };
+static enum class StringFirstPartTypes {Email, Number, Login };
 
 // Структура, содержащая все параметры, требуемые при проверке и нормализации строки
 static struct StringsNormalizerAndValidatorParameters {
@@ -25,27 +25,27 @@ static struct StringsNormalizerAndValidatorParameters {
 } normalizerParameters;
 
 // Создает и открывает в формате записи файл для текущего нормализуемого файла базы в итоговой директории
-FILE* getNormalizedBaseFilePtr(string pathToResultFolder, string pathToBaseFile, FILE* mergedFilePtr=NULL);
+static FILE* getNormalizedBaseFilePtr(string pathToResultFolder, string pathToBaseFile, FILE* mergedFilePtr=NULL);
 
 /*Обрабатывает буфер с байтами, считанными из файла, делит их на строки, строки валидирует и нормализует.
 * Возвращает длину последней, обрезанной во время чтения по чанкам строки, если endOfInputFile - возвращает 0.
 * Изменяет resultBuffer (добавляя туда прошедшие валидацию и нормализацию строки), изменяет resultBufferLength по указателю, после выполнения функции там будет находиться конечная длина всего содержимого resultBuffer */
-size_t normalizeBufferLineByLine(char* inputBuffer, size_t inputBufferLength, char* resultBuffer, size_t* resultBufferLengthPtr, bool isEndOfInputFile);
+static size_t normalizeBufferLineByLine(char* inputBuffer, size_t inputBufferLength, char* resultBuffer, size_t* resultBufferLengthPtr, bool isEndOfInputFile);
 
 /* Добавляет переданную строку в итоговый буфер и изменяет по указателю длину итогового буфера на новое значение
 * (если строка удовлетворяет параметрам нормализации, находящимся в глобальной переменной normalizerParameters) */
-void addStringIfItSatisfyingConditions(char* string, size_t stringLength, char* resultBuffer, size_t* resultBufferLengthPtr);
+static void addStringIfItSatisfyingConditions(char* string, size_t stringLength, char* resultBuffer, size_t* resultBufferLengthPtr);
 
 /* Проверяет емейл на валидность, используя буфер байтов, из которых состоит емейл, и его длину, а также
 * глобальную переменную с параметрами нормализации - normalizerParameters */
-bool isEmailValid(char* email, size_t emailLength);
+static bool isEmailValid(char* email, size_t emailLength);
 
 /* Проверяет пароль на валидность, используя буфер байтов, из которых состоит емейл, и его длину, а также
 * глобальную переменную с параметрами нормализации - normalizerParameters */
-bool isValidPassword(char* passwordStartPointer, size_t passwordLength);
+static bool isValidPassword(char* passwordStartPointer, size_t passwordLength);
 
 // Проверяет, является ли одна строка подстрокой другой строки, используя быстрые системные функции
-bool hasOccurency(const char* string, size_t stringLength, const char* const substring, const size_t substringLength);
+static bool hasOccurency(const char* string, size_t stringLength, const char* const substring, const size_t substringLength);
 
 // Опции для ввода аргументов вызова программы из cmd, показыаемые пользователю при использовании флага --help или -h
 static const char* const usages[] = {
@@ -221,7 +221,7 @@ int normalize(int argc, const char** argv) {
 
 
 
-FILE* getNormalizedBaseFilePtr(string pathToResultFolder, string pathToBaseFile, FILE* mergedFilePtr) {
+static FILE* getNormalizedBaseFilePtr(string pathToResultFolder, string pathToBaseFile, FILE* mergedFilePtr) {
 
 	if (mergedFilePtr) return mergedFilePtr;
 	/* Поскольку могут быть файлы с одинаковыми названиями из разных директорий, выбираем имя итогового,
@@ -243,7 +243,7 @@ FILE* getNormalizedBaseFilePtr(string pathToResultFolder, string pathToBaseFile,
 	return normalizedBaseFilePtr;
 }
 
-bool hasOccurency(const char* string, size_t stringLength, const char* const substring, const size_t substringLength) {
+static bool hasOccurency(const char* string, size_t stringLength, const char* const substring, const size_t substringLength) {
 	if (string == NULL or stringLength == 0 or substring == NULL or substringLength == 0) return false; 
 
 	for (const char* s = string;
@@ -256,7 +256,7 @@ bool hasOccurency(const char* string, size_t stringLength, const char* const sub
 	return false;
 }
 
-bool isEmailValid(char* email, size_t emailLength) {
+static bool isEmailValid(char* email, size_t emailLength) {
 	if (emailLength < normalizerParameters.minFirstPartLength or emailLength > normalizerParameters.maxFirstPartLength) return false;
 
 	bool hasDotAfterEmailsSign = false; // Есть ли точка в емейле после символа '@'
@@ -285,7 +285,7 @@ bool isEmailValid(char* email, size_t emailLength) {
 	return true;
 }
 
-bool isValidPassword(char* passwordStartPointer, size_t passwordLength) {
+static bool isValidPassword(char* passwordStartPointer, size_t passwordLength) {
 
 	// Проверяем соответствие длины пароля заданным пользователем параметрам
 	if (passwordLength < normalizerParameters.minPasswordLength or passwordLength > normalizerParameters.maxPasswordLength) return false;
@@ -299,7 +299,7 @@ bool isValidPassword(char* passwordStartPointer, size_t passwordLength) {
 	return true;
 }
 
-void addStringIfItSatisfyingConditions(char* string, size_t stringLength, char* resultBuffer, size_t* resultBufferLengthPtr) {
+static void addStringIfItSatisfyingConditions(char* string, size_t stringLength, char* resultBuffer, size_t* resultBufferLengthPtr) {
 	bool hasDelimeter = false;
 
 	// Удаляем пробельные символы в начале и конце строки, кроме переноса строки в самом конце
@@ -352,7 +352,7 @@ void addStringIfItSatisfyingConditions(char* string, size_t stringLength, char* 
 	*resultBufferLengthPtr += stringLength;
 }
 
-size_t normalizeBufferLineByLine(char* inputBuffer, size_t inputBufferLength, char* resultBuffer, size_t* resultBufferLengthPtr, bool isEndOfInputFile) {
+static size_t normalizeBufferLineByLine(char* inputBuffer, size_t inputBufferLength, char* resultBuffer, size_t* resultBufferLengthPtr, bool isEndOfInputFile) {
 	size_t currentStringStartPosInInputBuffer = 0; // Позиция начала текущей строки в буфере (номер байта)
 	for (size_t pos = 0; pos < inputBufferLength; pos++) {
 		if (inputBuffer[pos] == '\n') {
