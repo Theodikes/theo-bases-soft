@@ -129,8 +129,13 @@ int normalize(int argc, const char** argv) {
 		cout << "Destination directory successfully created, start spitting file into it" << endl;
 	}
 
+
 	if (resultSeperatorInputAsString != NULL) normalizerParameters.resultSeparator = resultSeperatorInputAsString[0];
 
+	/* Проверяем валидность введённого пользователем регулярного выражения для email/num/log и сохраняем его
+	* в normalizerOptions по указателю. Столь сложная конструкция обусловлена тем, что сохранить напрямую указатель
+	* на новосозданный regex, не инициализируя переменную, невозможно, поскольку значение по указателю без ссылок
+	* на него автоматически очистится */
 	regex firstPartRegexPattern;
 	if (firstPartRegexString != NULL) {
 		if(not isValidRegex(firstPartRegexString)) {
@@ -141,6 +146,7 @@ int normalize(int argc, const char** argv) {
 		normalizerParameters.firstPartRegexPtr= &firstPartRegexPattern;
 	}
 
+	// Проверяем валидность введённого пользователем регулярного выражения для пароля и сохраняем его
 	regex passwordRegexPattern;
 	if (passwordRegexString != NULL) {
 		if(not isValidRegex(passwordRegexString)) {
