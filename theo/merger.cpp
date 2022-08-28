@@ -46,19 +46,19 @@ int merge(int argc, const char** argv) {
 		exit(1);
 	}
 
+	// Читаем по 64 мегабайта за одну итерацию, поскольку это оптимальный размер для чтения блока данных с ssd
+	size_t countBytesToReadInOneIteration = OPTIMAL_DISK_CHUNK_SIZE;
+	char* buffer = new char[countBytesToReadInOneIteration + 1];
+	if (buffer == NULL) {
+		cout << "Error: not enough memory in heap to allocate 64MB temporary buffer" << endl;
+		exit(1);
+	}
+
 	for (string sourceFilePath : sourceFilesPaths) {
 		FILE* sourceFilePtr = fopen(sourceFilePath.c_str(), "rb");
 		if (sourceFilePtr == NULL) {
 			cout << "File is skipped. Cannot open [" << sourceFilePath << "] because of invalid path or due to security policy reasons." << endl;
 			continue;
-		}
-
-		// Читаем по 64 мегабайта за одну итерацию, поскольку это оптимальный размер для чтения блока данных с ssd
-		size_t countBytesToReadInOneIteration = 1024 * 1024 * 64;
-		char* buffer = new char[countBytesToReadInOneIteration + 1];
-		if (buffer == NULL) {
-			cout << "Error: not enough memory in heap to allocate 64MB temporary buffer" << endl;
-			exit(1);
 		}
 
 		while (!feof(sourceFilePtr)) {
@@ -67,10 +67,10 @@ int merge(int argc, const char** argv) {
 			if (feof(sourceFilePtr) and buffer[bytesReaded - 1] != '\n') buffer[bytesReaded++] = '\n';
 			fwrite(buffer, sizeof(char), bytesReaded, resultFilePtr);
 		}
-		delete[] buffer;
 		fclose(sourceFilePtr);
 	}
 
+	delete[] buffer;
 	fclose(resultFilePtr);
 
 	cout << "\nAll files merged successfully!\n" << endl;
