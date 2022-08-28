@@ -64,7 +64,7 @@ int merge(int argc, const char** argv) {
 		while (!feof(sourceFilePtr)) {
 			size_t bytesReaded = fread(buffer, sizeof(char), countBytesToReadInOneIteration, sourceFilePtr);
 			// Если файл дочитан до конца, добавим перенос строки, чтобы не соединилось с первой строкой следующего файла
-			if (feof(sourceFilePtr) and buffer[bytesReaded - 1] != '\n') buffer[bytesReaded++] = 10;
+			if (feof(sourceFilePtr) and buffer[bytesReaded - 1] != '\n') buffer[bytesReaded++] = '\n';
 			fwrite(buffer, sizeof(char), bytesReaded, resultFilePtr);
 		}
 		delete[] buffer;
