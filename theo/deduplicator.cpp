@@ -13,27 +13,35 @@ static void addStringToDestinationBufferCheckingHash(ull stringHash, char* sourc
 работы функции в переменной, на которую указывает resultBufferLengthPtr, находится актуальная длина итогового буфера */
 static size_t deduplicateBufferLineByLine(char* buffer, size_t buflen, char* resultBuffer, size_t* resultBufferLengthPtr, bool isEndOfInputFile);
 
+// Проверяет, указан ли пользователем путь к исходному файлу, если нет - создает свой из имени входного файла
+static FILE* getDeduplicatedResultFilePtr(const char* inputFilePath, const char* destinationFilePath);
+
 // Опции для ввода аргументов вызова программы из cmd, показыаемые пользователю при использовании флага --help или -h
 static const char* const usages[] = {
-	"theo d [options]",
+	"theo d [options] [path]",
 	NULL,
 };
 
 int deduplicate(int argc, const char** argv) {
-	const char* inputFilePath = "merged.txt";
-	const char* destinationFilePath = "merged_dedup.txt";
+	const char* destinationFilePath = NULL;
 	size_t	linesInOneFile = 0;
 
 	struct argparse_option options[] = {
 		OPT_HELP(),
-		OPT_GROUP("Basic options"),
-		OPT_STRING('s', "source", &inputFilePath, "Path to file from which duplicates will be removed (default: 'merged.txt')"),
-		OPT_STRING('d', "destination", &destinationFilePath, "Path to result file without duplicates (default: 'merged_dedup.txt'"),
+		OPT_GROUP("File options"),
+		OPT_STRING('d', "destination", &destinationFilePath, "Path to result file without duplicates (default: '{your_file_name}_dedup.txt'"),
+        OPT_GROUP("    Unmarked (positional) argument are considered as path to file that need to be deduplicated. "),
 		OPT_END(),
 	};
 	struct argparse argparse;
 	argparse_init(&argparse, options, usages, 0);
-	argparse_parse(&argparse, argc, argv);
+	int remainingArgumentsCount = argparse_parse(&argparse, argc, argv);
+    if (remainingArgumentsCount < 1) {
+        argparse_usage(&argparse);
+        return -1;
+    }
+
+    const char* inputFilePath = argv[0];
 
     chrono::steady_clock::time_point begin = chrono::steady_clock::now();
     FILE* inputFile = fopen(inputFilePath, "rb");
@@ -55,12 +63,9 @@ int deduplicate(int argc, const char** argv) {
         cout << "Not enough memory to process this file: [" << inputFilePath << "]" << endl;
         return WN_OUT_OF_MEMORY;
     }
+    
 
-    FILE* resultFile = fopen(destinationFilePath, "wb+");
-    if (resultFile == NULL) {
-        cout << "Error: cannot open result file [" << destinationFilePath << " in write mode" << endl;
-        return ERROR_OPEN_FAILED;
-    }
+    FILE* resultFile = getDeduplicatedResultFilePtr(inputFilePath, destinationFilePath);
 
     /* Вычисляем размер временного буфера для хранения и обработки байтовых данных с файлов.
     * Обычно буфер должен иметь оптимальный размер для работы с диском (64 мегабайта, степень двойки в байтах),
@@ -154,4 +159,16 @@ static size_t deduplicateBufferLineByLine(char* buffer, size_t buflen, char* res
     /* Если не конец файла, и при этом во входном буфере остался кусок строки - возвращаем её длину, чтобы в передвинуть указатель
     в файле на нужное место и в следующий раз начать чтение с этой же строки*/
     return  buflen - currentStringStartPosInInputBufferIdx;
+}
+
+static FILE* getDeduplicatedResultFilePtr(const char* inputFilePath, const char* destinationFilePath) {
+    string destString = getFileNameWithoutExtension(inputFilePath) + "_dedup.txt";
+    const char* destPath = destinationFilePath != NULL ? destinationFilePath : destString.c_str();
+
+    FILE* resultFile = fopen(destPath, "wb+");
+    if (resultFile == NULL) {
+        cout << "Error: cannot open result file [" << destPath << " in write mode" << endl;
+        exit(ERROR_OPEN_FAILED);
+    }
+    return resultFile;
 }
