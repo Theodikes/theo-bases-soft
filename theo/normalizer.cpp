@@ -161,6 +161,7 @@ int normalize(int argc, const char** argv) {
 	FILE* mergedResultFile = NULL;
 	if (needMerge) mergedResultFile = fopen(pathToMergedResultFile, "wb+");
 
+	chrono::steady_clock::time_point begin = chrono::steady_clock::now();
 	/* Два буфера, в первый считывается информация из входного файла, во второй копируются нормализованные строки
 	* для записи целым чанком в выходной файл. Создаются до чтения файлов, чтобы не выделять память каждый раз.
 	* Аллоцируются оба буфера в куче, потому что в стеке может быть ограничение на размер памяти */
@@ -207,7 +208,8 @@ int normalize(int argc, const char** argv) {
 	delete[] resultBuffer;
 	_fcloseall(); // Закрываем все итоговые файлы
 
-	cout << "\nBases normalized successfully!\n" << endl;
+	chrono::steady_clock::time_point end = chrono::steady_clock::now();
+	cout << "\nBases normalized successfully! Execution time: " << chrono::duration_cast<std::chrono::seconds>(end - begin).count() << "[s]\n" << endl;
 	return ERROR_SUCCESS;
 }
 
