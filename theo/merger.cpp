@@ -55,7 +55,7 @@ int merge(int argc, const char** argv) {
 
 		// Читаем по 64 мегабайта за одну итерацию, поскольку это оптимальный размер для чтения блока данных с ssd
 		size_t countBytesToReadInOneIteration = 1024 * 1024 * 64;
-		char* buffer = new char[countBytesToReadInOneIteration];
+		char* buffer = new char[countBytesToReadInOneIteration + 1];
 		if (buffer == NULL) {
 			cout << "Error: not enough memory in heap to allocate 64MB temporary buffer" << endl;
 			exit(1);
@@ -64,7 +64,7 @@ int merge(int argc, const char** argv) {
 		while (!feof(sourceFilePtr)) {
 			size_t bytesReaded = fread(buffer, sizeof(char), countBytesToReadInOneIteration, sourceFilePtr);
 			// Если файл дочитан до конца, добавим перенос строки, чтобы не соединилось с первой строкой следующего файла
-			if (feof(sourceFilePtr)) buffer[bytesReaded] = 10;
+			if (feof(sourceFilePtr)) buffer[bytesReaded++] = 10;
 			fwrite(buffer, sizeof(char), bytesReaded, resultFilePtr);
 		}
 		delete[] buffer;
