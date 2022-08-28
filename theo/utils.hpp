@@ -15,7 +15,7 @@ using namespace std;
 namespace fs = std::filesystem;
 
 // Оптимальный размер чанка диска (ssd) для записи и чтения за одну операцию (fread/fwrite), вычислено тестированием
-static constexpr unsigned OPTIMAL_DISK_CHUNK_SIZE = 1024 * 1024 * 64;
+constexpr unsigned OPTIMAL_DISK_CHUNK_SIZE = 1024 * 1024 * 64;
 
 
 // Я люблю очевилные и чистые условия, как в питоне, извините
