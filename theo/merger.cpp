@@ -8,11 +8,15 @@ static const char* const usages[] = {
 
 int merge(int argc, const char** argv) {
 	const char* resultFilePath = "merged.txt";
+	/* Требуется ли рекурсивно искать файлы для объединения в переданных пользователем директориях (то есть,
+	* надо ли проверять поддиректории и поддиректории поддиректорий и так далее до конца) */
+	bool checkSourceDirectoriesRecursive = false;
 
 	struct argparse_option options[] = {
 		OPT_HELP(),
 		OPT_GROUP("Basic options"),
 		OPT_STRING('d', "destination", &resultFilePath, "Path to result file with all merged strings ('merged.txt' by default)"),
+		OPT_BOOLEAN('r', "recursive", &checkSourceDirectoriesRecursive, "check source directories recursive (default - false)"),
 		OPT_GROUP("All unmarked arguments are considered paths to files and folders with bases that need to be merged."),
 		OPT_END(),
 	};
@@ -27,7 +31,7 @@ int merge(int argc, const char** argv) {
 	// Файлы для объединения (set, чтобы избежать повторной обработки одних и тех же файлов)
 	robin_hood::unordered_flat_set<string> sourceFilesPaths;
 	for (int i = 0; i < remainingArgumentsCount; i++) {
-		processSourceFileOrDirectory(&sourceFilesPaths, argv[i]);
+		processSourceFileOrDirectory(&sourceFilesPaths, argv[i], checkSourceDirectoriesRecursive);
 	}
 
 	if (sourceFilesPaths.empty()) {
@@ -60,7 +64,7 @@ int merge(int argc, const char** argv) {
 		while (!feof(sourceFilePtr)) {
 			size_t bytesReaded = fread(buffer, sizeof(char), countBytesToReadInOneIteration, sourceFilePtr);
 			// Если файл дочитан до конца, добавим перенос строки, чтобы не соединилось с первой строкой следующего файла
-			if (feof(sourceFilePtr))buffer[bytesReaded] = 10;
+			if (feof(sourceFilePtr)) buffer[bytesReaded] = 10;
 			fwrite(buffer, sizeof(char), bytesReaded, resultFilePtr);
 		}
 		delete[] buffer;

@@ -44,7 +44,7 @@ string getFileNameWithoutExtension(string pathToFile);
 /* Добавляет в массив путей к файлам, который передан в первом аргументе, все .txt файлы, находящиеся в директории,
 путь к которой передан вторым аргументом, и её поддиректориях, либо сам файл, если вторым аргументом передан путь
 не к директории, а к файлу */
-bool processSourceFileOrDirectory(robin_hood::unordered_flat_set<string>*, string path);
+bool processSourceFileOrDirectory(robin_hood::unordered_flat_set<string>*, string path, bool recursive);
 
 // Заносит файл по указанному пути, если он имеет расширение .txt, в список файлов для обработки (нормализации, дедупликации etc)
 bool addFileToSourceList(robin_hood::unordered_flat_set<string>*, string filePath);

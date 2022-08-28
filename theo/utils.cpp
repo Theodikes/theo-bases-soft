@@ -22,7 +22,7 @@ string joinPaths(string dirPath, string filePath) {
 }
 
 
-bool processSourceFileOrDirectory(robin_hood::unordered_flat_set<string>* textFilesPaths, string path)
+bool processSourceFileOrDirectory(robin_hood::unordered_flat_set<string>* textFilesPaths, string path, bool recursive)
 {
 	if (!isAnythingExistsByPath(path)) {
 		cout << "File doesn`t exist: [" << path <<  "]" << endl;
@@ -30,25 +30,11 @@ bool processSourceFileOrDirectory(robin_hood::unordered_flat_set<string>* textFi
 	}
 	if (!isDirectory(path)) return addFileToSourceList(textFilesPaths, path);
 
-	WIN32_FIND_DATA fdFile;
-	HANDLE hFind = NULL;
-
-	string searchPath = path + "\\*";
-
-	if ((hFind = FindFirstFile(searchPath.c_str(), &fdFile)) == INVALID_HANDLE_VALUE)
-	{
-		cout << "Path to directory not found: [" << path << "]" << endl;;
-		return false;
+	for (const auto& entry : fs::directory_iterator(path)) {
+		string subpath = entry.path().string();
+		if (isDirectory(subpath) and recursive) processSourceFileOrDirectory(textFilesPaths, subpath, recursive);
+		else addFileToSourceList(textFilesPaths, subpath);
 	}
-
-	do{
-		if (strcmp(fdFile.cFileName, ".") != 0
-			and strcmp(fdFile.cFileName, "..") != 0) {
-		processSourceFileOrDirectory(textFilesPaths, joinPaths(path, fdFile.cFileName));
-		}
-	} while (FindNextFile(hFind, &fdFile));
-
-	FindClose(hFind);
 
 	return true;
 }

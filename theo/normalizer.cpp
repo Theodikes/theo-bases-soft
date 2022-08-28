@@ -60,6 +60,8 @@ int normalize(int argc, const char** argv) {
 	// Итоговый сепаратор, которым будут разделены email/log/num и password в нормализованной базе
 	const char* resultSeperatorInputAsString = NULL; 
 	bool needMerge = false; // Требуется ли объединять нормализованные строки со всех файлов в один итоговый
+	// Требуется ли рекурсивно искать файлы для нормализации в переданных пользователем директориях
+	bool checkSourceDirectoriesRecursive = false;
 	const char* pathToMergedResultFile = "normalized_merged.txt"; // Путь к итоговому файлу, если объединять надо
 
 	struct argparse_option options[] = {
@@ -68,6 +70,7 @@ int normalize(int argc, const char** argv) {
 		OPT_STRING('d', "destination", &destinationDirectoryPath, "absolute or relative path to result folder (default: current directory"),
 		OPT_BOOLEAN('m', "merge", &needMerge, "merge strings from all normalized files to one destination file\n\t\t\t\t  if this flag is set, 'destination' option will be ignored, use 'merged-file' instead"),
 		OPT_STRING('f', "merged-file", &pathToMergedResultFile, "path to merged result file (default - 'normalized_merged.txt')"),
+		OPT_BOOLEAN('r', "recursive", &checkSourceDirectoriesRecursive, "check source directories recursive (default - false)"),
 		OPT_GROUP("All unmarked (positional) arguments are considered paths to files and folders with bases that need to be normalized.\nExample command: 'theo n -d result needNormalize1.txt needNormalize2.txt'. More: github.com/Theodikes/theo-bases-soft"),
 
 		OPT_GROUP("\nBasic normalize options:\n"),
@@ -101,7 +104,7 @@ int normalize(int argc, const char** argv) {
 	robin_hood::unordered_flat_set<string> sourceFilesPaths;
 
 	for (int i = 0; i < remainingArgumentsCount; i++) {
-		processSourceFileOrDirectory(&sourceFilesPaths, argv[i]);
+		processSourceFileOrDirectory(&sourceFilesPaths, argv[i], checkSourceDirectoriesRecursive);
 	}
 
 	if (sourceFilesPaths.empty()) {
