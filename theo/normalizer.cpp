@@ -313,7 +313,7 @@ static void addStringIfItSatisfyingConditions(char* string, size_t stringLength,
 			stringLength--;
 		}
 		// Если пробелы в конце строки - просто уменьшаем длину строки
-		for (size_t i = stringLength - 1; isspace(string[stringLength - 1]); i--) stringLength--;
+		for (size_t i = stringLength - 1; isspace(string[stringLength - 1]) and stringLength > 1; i--) stringLength--;
 	}
 
 	if (stringLength > normalizerParameters.maxAllLength or stringLength < normalizerParameters.minAllLength) return;
