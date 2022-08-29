@@ -30,6 +30,7 @@ static const char* const commandsDescription = "Commands:\n\
             normalize, n    Normalize bases\n\
             merge, m        Merge files\n\
             split, s        Split file by number of lines\n\
-            dedup, d        Delete duplicate lines in file\n";
+            dedup, d        Delete duplicate lines in file\n\
+            count, c        Count number of strings in files\n";
 
 #endif // !THEO_COMMANDS
