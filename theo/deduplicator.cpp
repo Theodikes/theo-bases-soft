@@ -59,9 +59,11 @@ int deduplicate(int argc, const char** argv) {
         cout << "Error: cannot deduplicate, input file [" << inputFilePath << "] is empty." << endl;
         return 1;
     }
-    if (getAvailableMemoryInBytes() / 10 * 8 < static_cast<ull>(inputFileSizeInBytes)) {
-        cout << "Not enough memory to process this file: [" << inputFilePath << "]" << endl;
-        return WN_OUT_OF_MEMORY;
+    if (getAvailableMemoryInBytes() < static_cast<ull>(inputFileSizeInBytes)) {
+        cout << "Warning: there may not be enough RAM to remove duplicates (if there are few duplicates in specified file). The program can crash at any time if the memory limit is exceeded. Continue? (y/n): ";
+        char answer;
+        cin >> answer;
+        if(answer != 'y') return WN_OUT_OF_MEMORY;
     }
     
 
