@@ -28,6 +28,7 @@ int merge(int argc, const char** argv) {
 		return -1;
 	}
 
+	chrono::steady_clock::time_point begin = chrono::steady_clock::now();
 	// Файлы для объединения (set, чтобы избежать повторной обработки одних и тех же файлов)
 	robin_hood::unordered_flat_set<string> sourceFilesPaths;
 	for (int i = 0; i < remainingArgumentsCount; i++) {
@@ -73,7 +74,7 @@ int merge(int argc, const char** argv) {
 	delete[] buffer;
 	fclose(resultFilePtr);
 
-	cout << "\nAll files merged successfully!\n" << endl;
-
+	chrono::steady_clock::time_point end = chrono::steady_clock::now();
+	cout << "\nFiles merged successfully! Execution time: " << chrono::duration_cast<std::chrono::seconds>(end - begin).count() << "[s]\n" << endl;
 	return ERROR_SUCCESS;
 }
