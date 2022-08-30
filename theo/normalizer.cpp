@@ -25,7 +25,7 @@ static struct StringsNormalizerAndValidatorParameters {
 } normalizerParameters;
 
 // Создает и открывает в формате записи файл для текущего нормализуемого файла базы в итоговой директории
-static FILE* getNormalizedBaseFilePtr(string pathToResultFolder, string pathToBaseFile, FILE* mergedFilePtr=NULL);
+static FILE* getNormalizedBaseFilePtr(string pathToResultFolder, string pathToBaseFile);
 
 /*Обрабатывает буфер с байтами, считанными из файла, делит их на строки, строки валидирует и нормализует.
 * Возвращает длину итогового буфера, который надо записать в файл с нормализованными строками */
@@ -166,8 +166,8 @@ int normalize(int argc, const char** argv) {
 		if (normalizerParameters.passwordNeededOccurency != NULL)
 		normalizerParameters.passwordOccurencyLength = strlen(normalizerParameters.passwordNeededOccurency);
 
-	FILE* mergedResultFile = NULL;
-	if (needMerge) mergedResultFile = fopen(pathToMergedResultFile, "wb+");
+	FILE* resultFile = NULL;
+	if (needMerge) resultFile = fopen(pathToMergedResultFile, "wb+");
 
 	chrono::steady_clock::time_point begin = chrono::steady_clock::now();
 	
@@ -179,11 +179,18 @@ int normalize(int argc, const char** argv) {
 			continue;
 		}
 
-		FILE* normalizedBaseFilePtr = getNormalizedBaseFilePtr(destinationDirectoryPath, sourceFilePath, mergedResultFile);
-		if (normalizedBaseFilePtr == NULL) continue;
+		/* Если мы не складываем всё в один файл, то каждую итерацию цикла создаём под каждый входной файл
+		* свой итоговый файл, в котором будут находиться нормализованные строки из вхождного */
+		if (!needMerge) {
+			resultFile = getNormalizedBaseFilePtr(destinationDirectoryPath, sourceFilePath);
+			if (resultFile == NULL) {
+				cout << "Error: cannot open result file [" << joinPaths(destinationDirectoryPath, sourceFilePath) << "] in write mode" << endl;
+				continue;
+			}
+		}
 
-
-		processFileByChunks(inputBaseFilePointer, normalizedBaseFilePtr, normalizeBufferLineByLine);
+		// Обрабатываем весь файл почанково и записываем все нормализованные строки в итоговый файл
+		processFileByChunks(inputBaseFilePointer, resultFile, normalizeBufferLineByLine);
 		
 	}
 	_fcloseall(); // Закрываем все итоговые файлы
@@ -195,9 +202,8 @@ int normalize(int argc, const char** argv) {
 
 
 
-static FILE* getNormalizedBaseFilePtr(string pathToResultFolder, string pathToBaseFile, FILE* mergedFilePtr) {
+static FILE* getNormalizedBaseFilePtr(string pathToResultFolder, string pathToBaseFile) {
 
-	if (mergedFilePtr) return mergedFilePtr;
 	/* Поскольку могут быть файлы с одинаковыми названиями из разных директорий, выбираем имя итогового,
 	нормализованного файла, пока не найдём незанятое (допустим, если нормализуется два файла из разных директорий с
 	совпадающими именами, предположим, base1/test.txt и base2/test.txt, первый будет положен в итоговую директорию
