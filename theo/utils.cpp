@@ -91,3 +91,47 @@ bool isValidRegex(string regularExpression) {
 string getWorkingDirectoryPath() {
 	return fs::current_path().string();
 }
+
+void processFileByChunks(FILE* inputFile, FILE* resultFile, size_t processChunkBuffer(char*, size_t, char*)) {
+	// Отдельно объявляем переменную с говорящим названием для понимания её смысла в данном контексте
+	size_t countBytesToReadInOneIteration = OPTIMAL_DISK_CHUNK_SIZE;
+
+	/* Буфер, в который будет считываться информация с диска(со входящего файла) и в котором будут считаться строки.
+	* Аллоцируется в куче, потому что в стеке может быть ограничение на размер памяти */
+	char* inputBuffer = new char[countBytesToReadInOneIteration + 2];
+	char* resultBuffer = new char[countBytesToReadInOneIteration + 2];
+	if (inputBuffer == NULL or resultBuffer == NULL) {
+		cout << "Error: annot allocate buffer of " << countBytesToReadInOneIteration * 2 << "bytes" << endl;
+		exit(1);
+	}
+
+	while (!feof(inputFile)) {
+		/* Считываем нужное количество байт из входного файла в буфер, количество реально считаных байт записывается
+		*  в переменную, нужную на случай, если файл закончился, и реально считалось меньше байт, чем предполагалось */
+		size_t bytesReaded = fread(inputBuffer, sizeof(char), countBytesToReadInOneIteration, inputFile);
+		size_t inputBufferLength = bytesReaded;
+		/* Если это последняя строка во входном файле и после неё нет переноса строки, устанавливаем его после
+		* конца строки, чтобы в дальнейшем функция-обработчик считала это за цельную строку.
+		* Кроме того, увеличиваем длину входного буфера на единицу, чтобы последний перенос был считан */
+		if (feof(inputFile) and inputBuffer[inputBufferLength - 1] != '\n') inputBuffer[inputBufferLength++] = '\n';
+		/* Если в этом считанном входном буфере осталась незаконченная строка, обрезанная при считывании побайтово
+		 * делаем отступ в файле назад на длину оставшегося в буфере неполного куска строки,
+		 * чтобы при следующем fread обработать её полностью. Так же уменьшаем размер входного буфера для чтения,
+		 * чтобы туда не попал неполный кусок строки */
+		else {
+			while (inputBuffer[inputBufferLength - 1] != '\n') inputBufferLength--;
+			size_t remainingStringPartLength = bytesReaded - inputBufferLength;
+			if(remainingStringPartLength) fseek(inputFile, -static_cast<long>(remainingStringPartLength), SEEK_CUR);
+		}
+		/* Читаем буфер посимвольно, генерируем хеши для строк, проверяем на уникальность, записываем уникальные строки
+		* последовательно в итоговый буфер и получаем размер отступа назад для чтения в следующий раз (если буфер был
+		* обрезан на середине какой-то строки, отступ ненулевой, чтобы прочесть строку полностью)*/
+		size_t resultBufferLength = processChunkBuffer(inputBuffer, inputBufferLength, resultBuffer);
+		// Записываем данные из итогового буфера с уникальными строками в файл вывода
+		fwrite(resultBuffer, sizeof(char), resultBufferLength, resultFile);
+	}
+	// Освобождение памяти буферов и закрытие файлов
+	delete[] inputBuffer;
+	delete[] resultBuffer;
+	fclose(inputFile);
+}
