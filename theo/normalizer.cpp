@@ -28,9 +28,8 @@ static struct StringsNormalizerAndValidatorParameters {
 static FILE* getNormalizedBaseFilePtr(string pathToResultFolder, string pathToBaseFile, FILE* mergedFilePtr=NULL);
 
 /*Обрабатывает буфер с байтами, считанными из файла, делит их на строки, строки валидирует и нормализует.
-* Возвращает длину последней, обрезанной во время чтения по чанкам строки, если endOfInputFile - возвращает 0.
-* Изменяет resultBuffer (добавляя туда прошедшие валидацию и нормализацию строки), изменяет resultBufferLength по указателю, после выполнения функции там будет находиться конечная длина всего содержимого resultBuffer */
-static size_t normalizeBufferLineByLine(char* inputBuffer, size_t inputBufferLength, char* resultBuffer, size_t* resultBufferLengthPtr, bool isEndOfInputFile);
+* Возвращает длину итогового буфера, который надо записать в файл с нормализованными строками */
+static size_t normalizeBufferLineByLine(char* inputBuffer, size_t inputBufferLength, char* resultBuffer);
 
 /* Добавляет переданную строку в итоговый буфер и изменяет по указателю длину итогового буфера на новое значение
 * (если строка удовлетворяет параметрам нормализации, находящимся в глобальной переменной normalizerParameters) */
@@ -171,20 +170,11 @@ int normalize(int argc, const char** argv) {
 	if (needMerge) mergedResultFile = fopen(pathToMergedResultFile, "wb+");
 
 	chrono::steady_clock::time_point begin = chrono::steady_clock::now();
-	/* Два буфера, в первый считывается информация из входного файла, во второй копируются нормализованные строки
-	* для записи целым чанком в выходной файл. Создаются до чтения файлов, чтобы не выделять память каждый раз.
-	* Аллоцируются оба буфера в куче, потому что в стеке может быть ограничение на размер памяти */
-	char* inputBuffer = new char[OPTIMAL_DISK_CHUNK_SIZE + 1];
-	char* resultBuffer = new char[OPTIMAL_DISK_CHUNK_SIZE + 1];
-	if (inputBuffer == NULL or resultBuffer == NULL) {
-		cout << "Error: annot allocate buffer of " << OPTIMAL_DISK_CHUNK_SIZE * 2 << "bytes" << endl;
-		exit(1);
-	}
 	
 	for (string sourceFilePath: sourceFilesPaths) {
 
-		FILE* baseFilePointer = fopen(sourceFilePath.c_str(), "rb");
-		if (baseFilePointer == NULL) {
+		FILE* inputBaseFilePointer = fopen(sourceFilePath.c_str(), "rb");
+		if (inputBaseFilePointer == NULL) {
 			cout << "File is skipped. Cannot open [" << sourceFilePath << "] because of invalid path or due to security policy reasons." << endl;
 			continue;
 		}
@@ -193,28 +183,9 @@ int normalize(int argc, const char** argv) {
 		if (normalizedBaseFilePtr == NULL) continue;
 
 
-		while (!feof(baseFilePointer)) {
-			size_t resultBufferLength = 0; // Длина итогового буфера с уникальными строками в байтах
-			/* Считываем нужное количество байт из входного файла в буфер, количество реально считаных байт
-			 * записывается в переменную, нужную на случай, если файл закончился, и реально считалось меньше байт, 
-			 * чем предполагалось изначально*/
-			size_t bytesReadedCount = fread(inputBuffer, sizeof(char), OPTIMAL_DISK_CHUNK_SIZE, baseFilePointer);
-			/* Читаем буфер посимвольно, генерируем хеши для строк, проверяем на уникальность, записываем уникальные строки
-			* последовательно в итоговый буфер и получаем размер отступа назад для чтения в следующий раз (если буфер был
-			* обрезан на середине какой-то строки, отступ ненулевой, чтобы прочесть строку полностью)*/
-			size_t remainingStringPartLength = normalizeBufferLineByLine(inputBuffer, bytesReadedCount, resultBuffer, &resultBufferLength, feof(baseFilePointer));
-			// Записываем данные из итогового буфера с уникальными строками в файл вывода
-			fwrite(resultBuffer, sizeof(char), resultBufferLength, normalizedBaseFilePtr);
-			/* Если в этом считанном входном буфере осталась незаконченная строка, обрезанная при считывании побайтово
-			 * делаем отступ в файле назад на длину оставшегося в буфере неполного куска строки,
-			 * чтобы при следующем fread обработать её полностью */
-			if (remainingStringPartLength) fseek(baseFilePointer, -static_cast<long>(remainingStringPartLength), SEEK_CUR);
-		}
+		processFileByChunks(inputBaseFilePointer, normalizedBaseFilePtr, normalizeBufferLineByLine);
 		
-		fclose(baseFilePointer);
 	}
-	delete[] inputBuffer;
-	delete[] resultBuffer;
 	_fcloseall(); // Закрываем все итоговые файлы
 
 	chrono::steady_clock::time_point end = chrono::steady_clock::now();
@@ -355,24 +326,18 @@ static void addStringIfItSatisfyingConditions(char* string, size_t stringLength,
 	*resultBufferLengthPtr += stringLength;
 }
 
-static size_t normalizeBufferLineByLine(char* inputBuffer, size_t inputBufferLength, char* resultBuffer, size_t* resultBufferLengthPtr, bool isEndOfInputFile) {
+static size_t normalizeBufferLineByLine(char* inputBuffer, size_t inputBufferLength, char* resultBuffer) {
 	size_t currentStringStartPosInInputBuffer = 0; // Позиция начала текущей строки в буфере (номер байта)
+	size_t resultBufferLength = 0;
 	for (size_t pos = 0; pos < inputBufferLength; pos++) {
 		if (inputBuffer[pos] == '\n') {
 			// В данном случае в строке не надо учитывать \n, оно будет автоматически вставлено после нормализации
 			size_t currentStringLength = pos - currentStringStartPosInInputBuffer;
-			addStringIfItSatisfyingConditions(&inputBuffer[currentStringStartPosInInputBuffer], currentStringLength, resultBuffer, resultBufferLengthPtr);
+			addStringIfItSatisfyingConditions(&inputBuffer[currentStringStartPosInInputBuffer], currentStringLength, resultBuffer, &resultBufferLength);
 			// Начало следующей строки - следующий символ после тукущей позиции
 			currentStringStartPosInInputBuffer = pos + 1;
 		}
 	}
 
-	/* Если это уже конец файла и у нас осталась неполная строка без переноса в конце, записываем её как есть,
-	* поскольку последняя строка в файле может не иметь в конце символа переноса строки */
-	if (isEndOfInputFile and currentStringStartPosInInputBuffer != inputBufferLength) {
-		addStringIfItSatisfyingConditions(&inputBuffer[currentStringStartPosInInputBuffer], inputBufferLength - currentStringStartPosInInputBuffer, resultBuffer, resultBufferLengthPtr);
-		return 0;
-	}
-
-	return inputBufferLength - currentStringStartPosInInputBuffer;
+	return resultBufferLength;
 }
