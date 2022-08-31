@@ -237,7 +237,6 @@ static bool hasOccurency(const char* string, size_t stringLength, const char* co
 }
 
 static bool isEmailValid(char* email, size_t emailLength) {
-	if (emailLength < normalizerParameters.minFirstPartLength or emailLength > normalizerParameters.maxFirstPartLength) return false;
 
 	bool hasDotAfterEmailsSign = false; // Есть ли точка в емейле после символа '@'
 	size_t emailSignNumber = 0; // Количество символов '@' в емейле (если больше или меньше одного - невалидный)
@@ -316,7 +315,12 @@ static void addStringIfItSatisfyingConditions(char* string, size_t stringLength,
 		}
 	}
 	if (not hasDelimeter) return; // Если в строке не найден разделитель, она невалидна
-	if (normalizerParameters.firstPartType == StringFirstPartTypes::Email and not isEmailValid(string, firstPartLength)) return; // Если мы проверяем email:pass базы и емейл невалиден, то строка невалидна вся
+
+	// Проверяем нормальность длины первой части строки (email/login/num)
+	if (firstPartLength < normalizerParameters.minFirstPartLength or firstPartLength > normalizerParameters.maxFirstPartLength) return;
+
+	// Если мы проверяем email:pass и емейл невалиден, то строка невалидна вся
+	if (normalizerParameters.firstPartType == StringFirstPartTypes::Email and not isEmailValid(string, firstPartLength)) return; 
 	
 	 // Добавляем единицу, поскольку есть ещё сепаратор, который не должен попасть в пароль
 	char* passwordStartPtr = &string[firstPartLength + 1];
