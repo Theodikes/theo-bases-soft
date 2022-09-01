@@ -255,12 +255,6 @@ static bool isEmailValid(char* email, size_t emailLength) {
 	// Проверяем, что в строке емейла один знак собачки '@' и присутствует точка после него (в домене)
 	if (emailSignNumber != 1 or !hasDotAfterEmailsSign) return false;
 
-	// Если нужно проверить вхождение какой-либо строки в строку емейла, проверяем
-	if (normalizerParameters.firstPartNeededOccurency != NULL and !hasOccurency(email, emailLength, normalizerParameters.firstPartNeededOccurency, normalizerParameters.firstPartOccurencyLength)) return false;
-
-	// Если нужно проверить, подходит ли строка с емейлом под пользовательское регулярное выражение, проверяем
-	if (normalizerParameters.firstPartRegexPtr != NULL and not regex_search(email, &email[emailLength], *(normalizerParameters.firstPartRegexPtr))) return false;
-
 	return true;
 }
 
@@ -321,6 +315,14 @@ static void addStringIfItSatisfyingConditions(char* string, size_t stringLength,
 
 	// Если мы проверяем email:pass и емейл невалиден, то строка невалидна вся
 	if (normalizerParameters.firstPartType == StringFirstPartTypes::Email and not isEmailValid(string, firstPartLength)) return; 
+
+	/* Если нужно проверить вхождение какой - либо строки в строку email / login / num, проверяем.
+	* Так же важен порядок: сначала проверка валидность емейла/номера, потом проверка подстрок и регулярных выражений,
+	* так как эти проверки занимают несоизмеримо больше времени для каждой строки */
+	if (normalizerParameters.firstPartNeededOccurency != NULL and !hasOccurency(string, firstPartLength, normalizerParameters.firstPartNeededOccurency, normalizerParameters.firstPartOccurencyLength)) return;
+
+	// Если нужно проверить, подходит ли строка с email/login/num под пользовательское регулярное выражение, проверяем
+	if (normalizerParameters.firstPartRegexPtr != NULL and not regex_search(string, &string[firstPartLength], *(normalizerParameters.firstPartRegexPtr))) return;
 	
 	 // Добавляем единицу, поскольку есть ещё сепаратор, который не должен попасть в пароль
 	char* passwordStartPtr = &string[firstPartLength + 1];
