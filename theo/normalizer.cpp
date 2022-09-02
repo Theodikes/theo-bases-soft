@@ -309,10 +309,6 @@ static bool isEmailValid(char* email, size_t emailLength) {
 }
 
 static bool isPhoneNumberValid(char* number, size_t numberLength) {
-	char tmp[1024];
-	memcpy(tmp, number, numberLength);
-	tmp[numberLength] = 0;
-	cout << tmp << endl;
 	for (size_t i = 0; i < numberLength; i++) {
 		// В номере первым символом может быть '+' с кодом страны, например, +33
 		if (number[i] == '+' and i == 0) continue;
