@@ -3,11 +3,13 @@
 // Возможные типы первой части строк в файле: емейлы (базы email:pass), номера (num:pass) и логины (log:pass)
 static enum class StringFirstPartTypes {Email, Number, Login };
 
+// Типы первой части строк, сопоставление enum-значений со строковыми для обработки пользовательского ввода
+static robin_hood::unordered_map<string, StringFirstPartTypes> stringFirstPartTypeMap = { {"emailpass", StringFirstPartTypes::Email},
+	{"numpass", StringFirstPartTypes::Number}, {"logpass", StringFirstPartTypes::Login} };
+
 // Структура, содержащая все параметры, требуемые при проверке и нормализации строки
 static struct StringsNormalizerAndValidatorParameters {
 	StringFirstPartTypes firstPartType = StringFirstPartTypes::Email; // По умолчанию обрабатываются emailpass базы
-	bool onlyAsciiSymbols = false; // Оставлять строки, в которых присутствуют только стандартные ascii-символы
-	bool trim = false; // Убирать ли пробелы в начале и конце каждой строки
 	size_t minAllLength = 10; // Минимальная длина всей строки, если меньше - отбрасываем, не обрабатываем в принципе
 	size_t maxAllLength = 100; // Максимальная длина всей строки (включая и email/num/login, и пароль
 	size_t minFirstPartLength = 5; // Минимальная длина первой части (email/log/pass)
@@ -22,6 +24,10 @@ static struct StringsNormalizerAndValidatorParameters {
 	size_t passwordOccurencyLength = 0; // Длина подстроки, если подстрока указана
 	regex* firstPartRegexPtr = NULL; // Регулярное выражение, которому должна соответствовать первая часть строки
 	regex* passwordRegexPtr = NULL; // Регулярное выражение, которому должен соответствовать пароль
+	/* Дополнительно разрешенные символы для первой части, которых по умолчанию для указанного типа (email/num/login)
+	* быть не должно. Сюда не входят стандартные разрешенные символы: для емейла это буквы, цифры, собачка и точки,
+	* для номера цифры, дефис и плюс, а для логина - буквы, цифры, точки и нижние подчеркивания */
+	const char* firstPartAdditionallyAllowedSymbols = NULL; 
 } normalizerParameters;
 
 // Создает и открывает в формате записи файл для текущего нормализуемого файла базы в итоговой директории
@@ -39,12 +45,21 @@ static void addStringIfItSatisfyingConditions(char* string, size_t stringLength,
 * глобальную переменную с параметрами нормализации - normalizerParameters */
 static bool isEmailValid(char* email, size_t emailLength);
 
+// Аналогично проверке емейла, проверяет номер телефона на валидность (нет ли посторонних символов и так далее)
+static bool isPhoneNumberValid(char* number, size_t numberLength);
+
+// Аналогичным образом проверяет логин на валидность
+static bool isLoginValid(char* login, size_t loginLength);
+
 /* Проверяет пароль на валидность, используя буфер байтов, из которых состоит емейл, и его длину, а также
 * глобальную переменную с параметрами нормализации - normalizerParameters */
-static bool isValidPassword(char* passwordStartPointer, size_t passwordLength);
+static bool isPasswordValid(char* passwordStartPointer, size_t passwordLength);
 
 // Проверяет, является ли одна строка подстрокой другой строки, используя быстрые системные функции
 static bool hasOccurency(const char* string, size_t stringLength, const char* const substring, const size_t substringLength);
+
+// Является ли текущий символ в строке одним из "дополнительно разрешенных" символов, указанных для текущего типа
+static bool isExtraAllowedSymbol(char symbol) { return strchr(normalizerParameters.firstPartAdditionallyAllowedSymbols, symbol) != NULL; }
 
 // Опции для ввода аргументов вызова программы из cmd, показыаемые пользователю при использовании флага --help или -h
 static const char* const usages[] = {
@@ -57,11 +72,12 @@ int normalize(int argc, const char** argv) {
 	const char* firstPartRegexString = NULL; // Строка с пользовательским регулярным выражением для проверки емейлов
 	const char* passwordRegexString = NULL; // Строка с пользовательским регулярным выражением для проверки паролей
 	// Итоговый сепаратор, которым будут разделены email/log/num и password в нормализованной базе
-	const char* resultSeperatorInputAsString = NULL; 
+	const char* resultSeparatorInputAsString = NULL; 
 	bool needMerge = false; // Требуется ли объединять нормализованные строки со всех файлов в один итоговый
 	// Требуется ли рекурсивно искать файлы для нормализации в переданных пользователем директориях
 	bool checkSourceDirectoriesRecursive = false;
-	const char* pathToMergedResultFile = "normalized_merged.txt"; // Путь к итоговому файлу, если объединять надо
+	const char* pathToMergedResultFile = "normalized_merged.txt"; // Путь к итоговому файлу, если надо объединять
+	const char* basesType = "emailpass"; // Тип нормализуемых баз, по умолчанию email:pass
 
 	struct argparse_option options[] = {
 		OPT_HELP(),
@@ -73,10 +89,9 @@ int normalize(int argc, const char** argv) {
 		OPT_GROUP("All unmarked (positional) arguments are considered paths to files and folders with bases that need to be normalized.\nExample command: 'theo n -d result needNormalize1.txt needNormalize2.txt'. More: github.com/Theodikes/theo-bases-soft"),
 
 		OPT_GROUP("\nBasic normalize options:\n"),
-		OPT_BOOLEAN('a', "check-ascii", &(normalizerParameters.onlyAsciiSymbols), "ignore strings with invalid ascii characters (default - false)"),
-		OPT_BOOLEAN('t', "trim", &(normalizerParameters.trim), "remove spaces at the beginning and at the end of each line (default - false)"),
+		OPT_STRING('b', "base-type", &basesType, "Bases type to normalize: emailpass, numpass or logpass (default - emailpass)"),
 		OPT_STRING('s', "separators", &(normalizerParameters.separatorSymbols), "a string containing possible delimiter characters\n\t\t\t\t  (between email and password), enter without spaces. (default - \":;\")"),
-		OPT_STRING(0, "result-sep", &resultSeperatorInputAsString, "separator symbol after normalization (default - ':')"),
+		OPT_STRING(0, "result-sep", &resultSeparatorInputAsString, "separator symbol after normalization (default - ':')"),
 		OPT_INTEGER(0, "min-pass", &(normalizerParameters.minPasswordLength), "minimum password length (default - 4)"),
 		OPT_INTEGER(0, "max-pass", &(normalizerParameters.maxPasswordLength), "maximum password length (default - 63)"),
 
@@ -89,6 +104,7 @@ int normalize(int argc, const char** argv) {
 		OPT_STRING('p', "password-regex", &passwordRegexString, "regular expression for filtering passwords"),
 		OPT_STRING(0, "fp-occurency", &(normalizerParameters.firstPartNeededOccurency), "Mandatory occurrence first part of string (email/num/login).\n\t\t\t\t  If possible, use istead of regex, because its much faster"),
 		OPT_STRING(0, "password-occurency", &(normalizerParameters.passwordNeededOccurency), "Mandatory occurrence in every string password.\n\t\t\t\t  If possible, use istead of regex, because its much faster"),
+		OPT_STRING(0, "fp-extra-allowed", &(normalizerParameters.firstPartAdditionallyAllowedSymbols), "Additional allowed symbols for first part of every string.\n\t\t\t\t  Read more with examples: https://github.com/Theodikes/theo-bases-soft"),
 		OPT_END(),
 	};
 	struct argparse argparse;
@@ -131,8 +147,34 @@ int normalize(int argc, const char** argv) {
 		cout << "Destination directory successfully created, start spitting file into it" << endl;
 	}
 
+	/* Указываем в параметрах нормализации тот тип баз, который ввёл пользователь, и все базы будут обрабатываться
+	* по этому типу (как email:pass, num:pass или login:pass) */
+	if (not stringFirstPartTypeMap.contains(basesType)) {
+		cout << "Error: wong bases type entered - [" << basesType << "] is invalid. Only three values are allowed: 'emailpass', 'numpass' or  'logpass'." << endl;
+		return ERROR_INVALID_LABEL;
+	}
+	normalizerParameters.firstPartType = stringFirstPartTypeMap[basesType];
 
-	if (resultSeperatorInputAsString != NULL) normalizerParameters.resultSeparator = resultSeperatorInputAsString[0];
+	/* Если пользователь сам не указал дополнительные разрешенные в строке символы, то указываем их по умолчанию
+	* в зависимости оти типа проверяемых баз */
+	if (normalizerParameters.firstPartAdditionallyAllowedSymbols == NULL) switch (normalizerParameters.firstPartType)
+	{
+	case StringFirstPartTypes::Email:
+		// У емейлов, кроме букв и цифр, могут быть собачка и точки
+		normalizerParameters.firstPartAdditionallyAllowedSymbols = ".@";
+		break;
+	case StringFirstPartTypes::Number:
+		// У номера, кроме цифр, + в начале и дефисы между частями самого номера
+		normalizerParameters.firstPartAdditionallyAllowedSymbols = "+-";
+		break;
+	case StringFirstPartTypes::Login:
+		// У логина, кроме букв и цифр, могут быть нижние подчеркивания, точки и дефисы между символами
+		normalizerParameters.firstPartAdditionallyAllowedSymbols = "_.-";
+		break;
+	}
+
+
+	if (resultSeparatorInputAsString != NULL) normalizerParameters.resultSeparator = resultSeparatorInputAsString[0];
 
 	/* Проверяем валидность введённого пользователем регулярного выражения для email/num/log и сохраняем его
 	* в normalizerOptions по указателю. Столь сложная конструкция обусловлена тем, что сохранить напрямую указатель
@@ -246,7 +288,15 @@ static bool isEmailValid(char* email, size_t emailLength) {
 			emailSignNumber++;
 			continue;
 		}
-		if (email[i] == '.' and emailSignNumber) hasDotAfterEmailsSign = true;
+		if (email[i] == '.' and emailSignNumber) {
+			hasDotAfterEmailsSign = true;
+			continue;
+		}
+		/* Проверяем специальные символы : они не должны идти первым или последним номером и после них должен
+		 * быть обычный символ (цифра или буква) */
+		if (isExtraAllowedSymbol(email[i]) and i != emailLength - 1 and i != 0 and isalnum(email[i + 1])) continue;
+		// Обычные (разрешенные по стандарту) символы в емейле - английские буквы и цифры
+		if (not isalnum(email[i])) return false;
 
 		// Приводим весь емейл к нижнему регистру
 		email[i] = tolower(email[i]);
@@ -258,7 +308,36 @@ static bool isEmailValid(char* email, size_t emailLength) {
 	return true;
 }
 
-static bool isValidPassword(char* passwordStartPointer, size_t passwordLength) {
+static bool isPhoneNumberValid(char* number, size_t numberLength) {
+	char tmp[1024];
+	memcpy(tmp, number, numberLength);
+	tmp[numberLength] = 0;
+	cout << tmp << endl;
+	for (size_t i = 0; i < numberLength; i++) {
+		// В номере первым символом может быть '+' с кодом страны, например, +33
+		if (number[i] == '+' and i == 0) continue;
+		// В номере могут встречаться и другие нецифровые символы, но после каждого обязательно должна идти цифра
+		if (isExtraAllowedSymbol(number[i]) and i != numberLength - 1 and i != 0 and isdigit(number[i + 1])) continue;
+		// Кроме специальных символов, номер может состоять исключительно из цифр
+		if (not isdigit(number[i])) return false;
+	}
+
+	return true;
+}
+
+static bool isLoginValid(char* login, size_t loginLength) {
+	for (size_t i = 0; i < loginLength; i++) {
+		/* Проверяем специальные символы : они не должны идти первым или последним номером и после них должен
+		 * быть обычный символ (цифра или буква) */
+		if (isExtraAllowedSymbol(login[i]) and i != loginLength - 1 and i != 0 and isalnum(login[i + 1])) continue;
+		// Обычные (разрешенные по стандарту) символы в логине - английские буквы и цифры
+		if (not isalnum(login[i])) return false;
+	}
+
+	return true;
+}
+
+static bool isPasswordValid(char* passwordStartPointer, size_t passwordLength) {
 
 	// Проверяем соответствие длины пароля заданным пользователем параметрам
 	if (passwordLength < normalizerParameters.minPasswordLength or passwordLength > normalizerParameters.maxPasswordLength) return false;
@@ -276,27 +355,15 @@ static void addStringIfItSatisfyingConditions(char* string, size_t stringLength,
 	bool hasDelimeter = false;
 
 	// Удаляем пробельные символы в начале и конце строки, кроме переноса строки в самом конце
-	if (normalizerParameters.trim) {
-		// Просто пропускаем символы в начале, если они пробельные, каждый раз перенося указатель на следующий символ
-		for (size_t i = 0; isspace(*string) and i < stringLength; i++) {
-			string++;
-			stringLength--;
-		}
-		// Если пробелы в конце строки - просто уменьшаем длину строки
-		for (size_t i = stringLength - 1; isspace(string[stringLength - 1]) and stringLength > 1; i--) stringLength--;
+	// Просто пропускаем символы в начале, если они пробельные, каждый раз перенося указатель на следующий символ
+	for (size_t i = 0; isspace(*string) and i < stringLength; i++) {
+		string++;
+		stringLength--;
 	}
+	// Если пробелы в конце строки - просто уменьшаем длину строки
+	for (size_t i = stringLength - 1; isspace(string[stringLength - 1]) and stringLength > 1; i--) stringLength--;
 
 	if (stringLength > normalizerParameters.maxAllLength or stringLength < normalizerParameters.minAllLength) return;
-
-	// Если стоит флаг onlyAscii, то все строки, в которых есть символы кроме английских букв, цифр и пунктуации - невалидны
-	if (normalizerParameters.onlyAsciiSymbols){
-		for (size_t i = 0; i < stringLength; i++) {
-			/* Если это командный символ, то есть имеет код от 0 до 31 или от 127 до 255, и при этом
-			* это не символ с кодом 10(символ переноса строки, '\n') и не символ с кодом 13 (символ возврата каретки, '\r'),
-			* то строка не является валидной строкой английского ascii и должна быть пропущена */
-			if ((string[i] < 31 or string[i] > 126) and string[i] != 10 and string[i] != 13) return;
-		}
-	}
 
 	// Считаем длину части строки до разделителя (разделитель между email/num/log и password) и проверяем, есть ли он
 	size_t firstPartLength = 0;
@@ -315,11 +382,15 @@ static void addStringIfItSatisfyingConditions(char* string, size_t stringLength,
 
 	// Если мы проверяем email:pass и емейл невалиден, то строка невалидна вся
 	if (normalizerParameters.firstPartType == StringFirstPartTypes::Email and not isEmailValid(string, firstPartLength)) return; 
+	// Аналогично с num:pass, номер проверяем другой функцией
+	else if (normalizerParameters.firstPartType == StringFirstPartTypes::Number and not isPhoneNumberValid(string, firstPartLength)) return;
+	// То же самое с логином
+	else if (normalizerParameters.firstPartType == StringFirstPartTypes::Login and not isLoginValid(string, firstPartLength)) return;
 
 	/* Если нужно проверить вхождение какой - либо строки в строку email / login / num, проверяем.
 	* Так же важен порядок: сначала проверка валидность емейла/номера, потом проверка подстрок и регулярных выражений,
 	* так как эти проверки занимают несоизмеримо больше времени для каждой строки */
-	if (normalizerParameters.firstPartNeededOccurency != NULL and !hasOccurency(string, firstPartLength, normalizerParameters.firstPartNeededOccurency, normalizerParameters.firstPartOccurencyLength)) return;
+	if (normalizerParameters.firstPartNeededOccurency != NULL and not hasOccurency(string, firstPartLength, normalizerParameters.firstPartNeededOccurency, normalizerParameters.firstPartOccurencyLength)) return;
 
 	// Если нужно проверить, подходит ли строка с email/login/num под пользовательское регулярное выражение, проверяем
 	if (normalizerParameters.firstPartRegexPtr != NULL and not regex_search(string, &string[firstPartLength], *(normalizerParameters.firstPartRegexPtr))) return;
@@ -328,7 +399,7 @@ static void addStringIfItSatisfyingConditions(char* string, size_t stringLength,
 	char* passwordStartPtr = &string[firstPartLength + 1];
 	// Вычитаем ещё единицу, поскольку сепаратор в середине не должен попасть в пароль
 	size_t passwordLength = stringLength - firstPartLength - 1;
-	if (not isValidPassword(passwordStartPtr, passwordLength)) return;
+	if (not isPasswordValid(passwordStartPtr, passwordLength)) return;
 
 	// Добавляем обязательный перенос строки в конце, и увеличиваем длину строки на единицу, если переноса не было
 	if (string[stringLength - 1] != '\n') string[stringLength++] = '\n';
