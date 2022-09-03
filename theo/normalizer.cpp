@@ -16,6 +16,7 @@ static struct StringsNormalizerAndValidatorParameters {
 	size_t maxFirstPartLength = 63; // Максимальная длина первой части
 	size_t minPasswordLength = 4; // Минимальная длина второй части (пароля)
 	size_t maxPasswordLength = 63; // Максимальная длина второй части (пароля)
+	bool firstPartToLowerCase = true; // Приводить первую часть (емейл, логин) к нижнему регистру
 	const char* separatorSymbols = ":;"; // Какие символы при проверке строки считать разделителем между частями
 	char resultSeparator = ':'; // Унифицированный итоговый разделитель (будет вставлен разделителем в каждой строке)
 	const char* firstPartNeededOccurency = NULL; // Строка, которая должна являться подстрокой первой части
@@ -96,6 +97,7 @@ int normalize(int argc, const char** argv) {
 		OPT_INTEGER(0, "max-pass", &(normalizerParameters.maxPasswordLength), "maximum password length (default - 63)"),
 
 		OPT_GROUP("\nAdditional (rarely used) normalize options:\n"),
+		OPT_BOOLEAN('l', "fp-tolower", &(normalizerParameters.firstPartToLowerCase), "Convert first part (email, login) to lowercase (default - true)"),
 		OPT_INTEGER(0, "min-all", &(normalizerParameters.minAllLength), "minimum length of the entire string (default - 10)"),
 		OPT_INTEGER(0, "max-all", &(normalizerParameters.maxAllLength), "maximum length of the entire string (default - 100)"),
 		OPT_INTEGER(0, "min-fp", &(normalizerParameters.minFirstPartLength), "minimum length of the string first part (email/num/login) (default - 5)"),
@@ -298,8 +300,8 @@ static bool isEmailValid(char* email, size_t emailLength) {
 		// Обычные (разрешенные по стандарту) символы в емейле - английские буквы и цифры
 		if (not isalnum(email[i])) return false;
 
-		// Приводим весь емейл к нижнему регистру
-		email[i] = tolower(email[i]);
+		// Приводим весь емейл к нижнему регистру, если надо
+		if(normalizerParameters.firstPartToLowerCase) email[i] = tolower(email[i]);
 	}
 
 	// Проверяем, что в строке емейла один знак собачки '@' и присутствует точка после него (в домене)
@@ -328,6 +330,8 @@ static bool isLoginValid(char* login, size_t loginLength) {
 		if (isExtraAllowedSymbol(login[i]) and i != loginLength - 1 and i != 0 and isalnum(login[i + 1])) continue;
 		// Обычные (разрешенные по стандарту) символы в логине - английские буквы и цифры
 		if (not isalnum(login[i])) return false;
+		// Приводим весь логин посимвольно к нижнему регистру, если надо
+		if (normalizerParameters.firstPartToLowerCase) login[i] = tolower(login[i]);
 	}
 
 	return true;
