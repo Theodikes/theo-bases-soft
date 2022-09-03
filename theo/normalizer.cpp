@@ -69,14 +69,14 @@ static const char* const usages[] = {
 };
 
 int normalize(int argc, const char** argv) {
-	const char* destinationDirectoryPath = ".";
+	const char* destinationDirectoryPath = "."; // Путь к итоговой директории, куда будут сложены нормализованные файлы
 	const char* firstPartRegexString = NULL; // Строка с пользовательским регулярным выражением для проверки емейлов
 	const char* passwordRegexString = NULL; // Строка с пользовательским регулярным выражением для проверки паролей
 	// Итоговый сепаратор, которым будут разделены email/log/num и password в нормализованной базе
 	const char* resultSeparatorInputAsString = NULL; 
-	bool needMerge = false; // Требуется ли объединять нормализованные строки со всех файлов в один итоговый
 	// Требуется ли рекурсивно искать файлы для нормализации в переданных пользователем директориях
 	bool checkSourceDirectoriesRecursive = false;
+	bool needMerge = false; // Требуется ли объединять нормализованные строки со всех файлов в один итоговый
 	const char* pathToMergedResultFile = "normalized_merged.txt"; // Путь к итоговому файлу, если надо объединять
 	const char* basesType = "emailpass"; // Тип нормализуемых баз, по умолчанию email:pass
 
@@ -91,7 +91,7 @@ int normalize(int argc, const char** argv) {
 
 		OPT_GROUP("\nBasic normalize options:\n"),
 		OPT_STRING('b', "base-type", &basesType, "Bases type to normalize: emailpass, numpass or logpass (default - emailpass)"),
-		OPT_STRING('s', "separators", &(normalizerParameters.separatorSymbols), "a string containing possible delimiter characters\n\t\t\t\t  (between email and password), enter without spaces. (default - \":;\")"),
+		OPT_STRING('s', "separators", &(normalizerParameters.separatorSymbols), "a string containing possible delimiter characters\n\t\t\t\t  (between first part and password), enter without spaces. (default - \":;\")"),
 		OPT_STRING(0, "result-sep", &resultSeparatorInputAsString, "separator symbol after normalization (default - ':')"),
 		OPT_INTEGER(0, "min-pass", &(normalizerParameters.minPasswordLength), "minimum password length (default - 4)"),
 		OPT_INTEGER(0, "max-pass", &(normalizerParameters.maxPasswordLength), "maximum password length (default - 63)"),
