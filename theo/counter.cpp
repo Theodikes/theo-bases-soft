@@ -26,16 +26,8 @@ int count(int argc, const char** argv) {
 		return -1;
 	}
 
-	// Файлы для объединения (set, чтобы избежать повторной обработки одних и тех же файлов)
-	robin_hood::unordered_flat_set<string> sourceFilesPaths;
-	for (int i = 0; i < remainingArgumentsCount; i++) {
-		processSourceFileOrDirectory(&sourceFilesPaths, argv[i], checkSourceDirectoriesRecursive);
-	}
-
-	if (sourceFilesPaths.empty()) {
-		cout << "Error: paths to bases not specified" << endl;
-		exit(1);
-	}
+	// Получаем список всех валидных файлов, которые надо токенизировать
+	sourcefiles_info sourceFilesPaths = getSourceFilesFromUserInput(remainingArgumentsCount, argv, checkSourceDirectoriesRecursive);
 
 	// Читаем по 64 мегабайта за одну итерацию, поскольку это оптимальный размер для чтения блока данных с ssd
 	size_t countBytesToReadInOneIteration = OPTIMAL_DISK_CHUNK_SIZE;
