@@ -49,6 +49,11 @@ bool processSourceFileOrDirectory(sourcefiles_info*, string path, bool recursive
 // Заносит файл по указанному пути, если он имеет расширение .txt, в список файлов для обработки (нормализации, дедупликации etc)
 bool addFileToSourceList(sourcefiles_info*, string filePath);
 
+/* Получает все входные пути для обработки из аргументов, введённых юзером (и папки, и файлы).
+* Возвращает список путей ко всем входным уникальным файлам (включая файлы из директорий и поддиректорий, 
+* если параметр рекурсии - true), которые будут обработаны софтом. */
+sourcefiles_info getSourceFilesFromUserInput(size_t sourcePathsCount, const char** userSourcePaths, bool checkDirectoriesRecursive);
+
 // Считает количество строк, разделённых символами переноса строк, в тексте. Каждая строка должна заканчиваться символом \n
 size_t getLinesCountInText(char* bytes);
 
@@ -69,6 +74,10 @@ bool isValidRegex(string regularExpression);
 
 // Возвращает строку, содержащую путь к текущец директории (откуда вызвана программа, исполняемый файл)
 string getWorkingDirectoryPath();
+
+/* Проверяет директорию, указанную пользователем как директорию вывода, если есть какая-то оишбка
+ * (например, на месте директории с таким же именем уже присутствует файл)- завершает работу программы */
+void checkDestinationDirectory(const char* destinationDirectoryPath);
 
 // Спрашиваем пользователя, надо ли создавать папку по указанному пути, если создана - возвращает true, иначе false
 bool createDirectoryUserDialog(string creatingDirectoryPath);

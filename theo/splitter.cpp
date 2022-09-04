@@ -39,14 +39,8 @@ int split(int argc, const char** argv) {
 		exit(1);
 	}
 
-	if (isAnythingExistsByPath(destinationDirectoryPath) and not isDirectory(destinationDirectoryPath)) {
-		cout << "Error: something is by path [" << destinationDirectoryPath << "] and this isn`t directory" << endl;
-		exit(1);
-	}
-	
-
-	// Если директории не существует и пользователь не хочет её создавать, выходим
-	if (not isAnythingExistsByPath(destinationDirectoryPath) and not createDirectoryUserDialog(destinationDirectoryPath)) exit(1);
+	// Проверяем итоговую директорию, есть ли к ней доступ и существует ли она
+	checkDestinationDirectory(destinationDirectoryPath);
 
 	const char* inputFilePath = argv[0];
 	FILE* inputFilePtr = fopen(inputFilePath, "rb");

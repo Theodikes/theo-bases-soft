@@ -45,6 +45,24 @@ bool addFileToSourceList(sourcefiles_info* sourceTextFilesPaths, string filePath
 	return true;
 }
 
+sourcefiles_info getSourceFilesFromUserInput(size_t sourcePathsCount, const char** userSourcePaths, bool checkDirectoriesRecursive) {
+	// Файлы для нормализации (set, чтобы избежать повторной обработки одних и тех же файлов)
+	sourcefiles_info sourceFilesPaths;
+
+	// Обрабатываем все пути, указанные пользователем, получаем оттуда все txt-файлы и сохраняем их в sourceFilesPaths
+	for (size_t i = 0; i < sourcePathsCount; i++) {
+		processSourceFileOrDirectory(&sourceFilesPaths, userSourcePaths[i], checkDirectoriesRecursive);
+	}
+
+	// Если ни одного валидного пути не оказалось, выходим
+	if (sourceFilesPaths.empty()) {
+		cout << "Error: valid paths to bases not specified" << endl;
+		exit(1);
+	}
+
+	return sourceFilesPaths;
+}
+
 string getFileNameWithoutExtension(string pathToFile) {
 	return filesystem::path(pathToFile).stem().string();
 }
@@ -161,6 +179,17 @@ void processAllSourceFiles(sourcefiles_info sourceFilesPaths, bool needMerge, FI
 
 	}
 	_fcloseall(); // Закрываем все итоговые файлы
+}
+
+void checkDestinationDirectory(const char* destinationDirectoryPath) {
+	// Если на указанном пользователем пути к итоговой директории что-то есть, и это что-то - не папка, выходим
+	if (isAnythingExistsByPath(destinationDirectoryPath) and not isDirectory(destinationDirectoryPath)) {
+		cout << "Error: something exists by path [" << destinationDirectoryPath << "] and this isn`t directory" << endl;
+		exit(1);
+	}
+
+	// Если директории не существует и пользователь не хочет её создавать, выходим
+	if (not isAnythingExistsByPath(destinationDirectoryPath) and not createDirectoryUserDialog(destinationDirectoryPath)) exit(1);
 }
 
 bool createDirectoryUserDialog(string creatingDirectoryPath) {

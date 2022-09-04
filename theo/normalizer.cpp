@@ -117,26 +117,10 @@ int normalize(int argc, const char** argv) {
 		return -1;
 	}
 
-	// Файлы для нормализации (set, чтобы избежать повторной обработки одних и тех же файлов)
-	robin_hood::unordered_flat_set<string> sourceFilesPaths;
+	sourcefiles_info sourceFilesPaths = getSourceFilesFromUserInput(remainingArgumentsCount, argv, checkSourceDirectoriesRecursive);
 
-	for (int i = 0; i < remainingArgumentsCount; i++) {
-		processSourceFileOrDirectory(&sourceFilesPaths, argv[i], checkSourceDirectoriesRecursive);
-	}
-
-	if (sourceFilesPaths.empty()) {
-		cout << "Error: paths to bases not specified" << endl;
-		exit(1);
-	}
-
-
-	if (isAnythingExistsByPath(destinationDirectoryPath) and not isDirectory(destinationDirectoryPath)) {
-		cout << "Error: something exists by path [" << destinationDirectoryPath << "] and this isn`t directory" << endl;
-		exit(1);
-	}
-
-	// Если директории не существует и пользователь не хочет её создавать, выходим
-	if (not isAnythingExistsByPath(destinationDirectoryPath) and not createDirectoryUserDialog(destinationDirectoryPath)) exit(1);
+	// Проверяем, всё ли нормально с итоговой директорией и существует ли она
+	if (not needMerge) checkDestinationDirectory(destinationDirectoryPath);
 
 	/* Указываем в параметрах нормализации тот тип баз, который ввёл пользователь, и все базы будут обрабатываться
 	* по этому типу (как email:pass, num:pass или login:pass) */
