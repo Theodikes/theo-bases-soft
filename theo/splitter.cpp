@@ -45,18 +45,8 @@ int split(int argc, const char** argv) {
 	}
 	
 
-	if (!isAnythingExistsByPath(destinationDirectoryPath)) {
-		char answer;
-		cout << "Destination directory doesn`t exist, create it? (y/n): ";
-		cin >> answer;
-		if (answer != 'y') exit(1);
-		bool ret = CreateDirectory(destinationDirectoryPath, NULL);
-		if (!ret) {
-			cout << "Error: cannot create directory by destination path" << endl;
-			exit(1);
-		}
-		cout << "Destination directory successfully created, start spitting file into it" << endl;
-	}
+	// Если директории не существует и пользователь не хочет её создавать, выходим
+	if (not isAnythingExistsByPath(destinationDirectoryPath) and not createDirectoryUserDialog(destinationDirectoryPath)) exit(1);
 
 	const char* inputFilePath = argv[0];
 	FILE* inputFilePtr = fopen(inputFilePath, "rb");

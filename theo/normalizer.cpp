@@ -131,23 +131,12 @@ int normalize(int argc, const char** argv) {
 
 
 	if (isAnythingExistsByPath(destinationDirectoryPath) and not isDirectory(destinationDirectoryPath)) {
-		cout << "Error: something is by path [" << destinationDirectoryPath << "] and this isn`t directory" << endl;
+		cout << "Error: something exists by path [" << destinationDirectoryPath << "] and this isn`t directory" << endl;
 		exit(1);
 	}
 
-
-	if (!isAnythingExistsByPath(destinationDirectoryPath)) {
-		char answer;
-		cout << "Destination directory doesn`t exist, create it? (y/n): ";
-		cin >> answer;
-		if (answer != 'y') exit(1);
-		bool ret = CreateDirectory(destinationDirectoryPath, NULL);
-		if (!ret) {
-			cout << "Error: cannot create directory by destination path" << endl;
-			exit(1);
-		}
-		cout << "Destination directory successfully created, start spitting file into it" << endl;
-	}
+	// Если директории не существует и пользователь не хочет её создавать, выходим
+	if (not isAnythingExistsByPath(destinationDirectoryPath) and not createDirectoryUserDialog(destinationDirectoryPath)) exit(1);
 
 	/* Указываем в параметрах нормализации тот тип баз, который ввёл пользователь, и все базы будут обрабатываться
 	* по этому типу (как email:pass, num:pass или login:pass) */

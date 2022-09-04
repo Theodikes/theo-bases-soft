@@ -162,3 +162,17 @@ void processAllSourceFiles(robin_hood::unordered_flat_set<string> sourceFilesPat
 	}
 	_fcloseall(); // Закрываем все итоговые файлы
 }
+
+bool createDirectoryUserDialog(string creatingDirectoryPath) {
+	char answer;
+	cout << "Destination directory doesn`t exist, create it? (y/n): ";
+	cin >> answer;
+	if (answer != 'y') return false;
+	bool ret = CreateDirectory(creatingDirectoryPath.c_str(), NULL);
+	if (!ret) {
+		cout << "Error: cannot create directory by destination path" << endl;
+		return false;
+	}
+	cout << "Destination directory successfully created!" << endl;
+	return true;
+}
