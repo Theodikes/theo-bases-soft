@@ -22,7 +22,7 @@ string joinPaths(string dirPath, string filePath) {
 }
 
 
-bool processSourceFileOrDirectory(robin_hood::unordered_flat_set<string>* textFilesPaths, string path, bool recursive)
+bool processSourceFileOrDirectory(sourcefiles_info* textFilesPaths, string path, bool recursive)
 {
 	if (!isAnythingExistsByPath(path)) {
 		cout << "File doesn`t exist: [" << path <<  "]" << endl;
@@ -39,7 +39,7 @@ bool processSourceFileOrDirectory(robin_hood::unordered_flat_set<string>* textFi
 	return true;
 }
 
-bool addFileToSourceList(robin_hood::unordered_flat_set<string>* sourceTextFilesPaths, string filePath) {
+bool addFileToSourceList(sourcefiles_info* sourceTextFilesPaths, string filePath) {
 	if (!(endsWith(filePath.c_str(), ".txt"))) return false;
 	(*sourceTextFilesPaths).insert(filePath);
 	return true;
@@ -135,7 +135,7 @@ void processFileByChunks(FILE* inputFile, FILE* resultFile, size_t processChunkB
 	delete[] resultBuffer;
 }
 
-void processAllSourceFiles(robin_hood::unordered_flat_set<string> sourceFilesPaths, bool needMerge, FILE* resultFile, string destinationDirectoryPath, FILE* getCurrentResultFile(string pathToResultFolder, string pathToCurrentSourceFile), size_t processChunkBuffer(char* inputBuffer, size_t inputBufferLength, char* resultBuffer)) {
+void processAllSourceFiles(sourcefiles_info sourceFilesPaths, bool needMerge, FILE* resultFile, string destinationDirectoryPath, FILE* getCurrentResultFile(string pathToResultFolder, string pathToCurrentSourceFile), size_t processChunkBuffer(char* inputBuffer, size_t inputBufferLength, char* resultBuffer)) {
 	for (string sourceFilePath : sourceFilesPaths) {
 
 		FILE* inputBaseFilePointer = fopen(sourceFilePath.c_str(), "rb");

@@ -18,16 +18,16 @@ namespace fs = std::filesystem;
 constexpr unsigned OPTIMAL_DISK_CHUNK_SIZE = 1024 * 1024 * 64;
 
 
-// Я люблю очевилные и чистые условия, как в питоне, извините
+// Я люблю очевидные и чистые условия, как в питоне, извините
 #define and &&
 #define or ||
 #define not !
 
-// Переменная для небольших положительных числовых значений, влезающих в байт памяти
-#define ushortest unsigned char
-
-// СОкращение ull для уменьшения количества кода и размера аргументов функций
+// Сокращение ull для уменьшения количества кода и размера аргументов функций
 #define ull unsigned long long
+
+// Информация о входных файлах, переданных юзером для обработки, сделал отдельный тип для лучшего понимания
+#define sourcefiles_info robin_hood::unordered_flat_set<string>
 
 // Проверяет, начинается ли строка с определённой другой строки (например, startsWith("test", "testing") == true)
 bool startsWith(const char* pre, const char* str);
@@ -44,10 +44,10 @@ string getFileNameWithoutExtension(string pathToFile);
 /* Добавляет в массив путей к файлам, который передан в первом аргументе, все .txt файлы, находящиеся в директории,
 путь к которой передан вторым аргументом, и её поддиректориях, либо сам файл, если вторым аргументом передан путь
 не к директории, а к файлу */
-bool processSourceFileOrDirectory(robin_hood::unordered_flat_set<string>*, string path, bool recursive);
+bool processSourceFileOrDirectory(sourcefiles_info*, string path, bool recursive);
 
 // Заносит файл по указанному пути, если он имеет расширение .txt, в список файлов для обработки (нормализации, дедупликации etc)
-bool addFileToSourceList(robin_hood::unordered_flat_set<string>*, string filePath);
+bool addFileToSourceList(sourcefiles_info*, string filePath);
 
 // Считает количество строк, разделённых символами переноса строк, в тексте. Каждая строка должна заканчиваться символом \n
 size_t getLinesCountInText(char* bytes);
@@ -87,5 +87,5 @@ void processFileByChunks(FILE* inputFile, FILE* resultFile, size_t processChunkB
 * создаёт для каждого входного файла свой собственный итоговый с обработанными строками.
 * Для каждого конкретного входного файла все действия выполняются с помощью функции 'processFileByChunks'.
 * После полного выполнения функция закрывает все открытые файлы. */
-void processAllSourceFiles(robin_hood::unordered_flat_set<string> sourceFilesPaths, bool needMerge, FILE* resultFile, string destinationDirectoryPath, FILE* getCurrentResultFile(string pathToResultFolder, string pathToCurrentSourceFile), size_t processChunkBuffer(char* inputBuffer, size_t inputBufferLength, char* resultBuffer));
+void processAllSourceFiles(sourcefiles_info sourceFilesPaths, bool needMerge, FILE* resultFile, string destinationDirectoryPath, FILE* getCurrentResultFile(string pathToResultFolder, string pathToCurrentSourceFile), size_t processChunkBuffer(char* inputBuffer, size_t inputBufferLength, char* resultBuffer));
 #endif // !MY_UTILS
