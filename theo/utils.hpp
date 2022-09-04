@@ -96,5 +96,15 @@ void processFileByChunks(FILE* inputFile, FILE* resultFile, size_t processChunkB
 * создаёт для каждого входного файла свой собственный итоговый с обработанными строками.
 * Для каждого конкретного входного файла все действия выполняются с помощью функции 'processFileByChunks'.
 * После полного выполнения функция закрывает все открытые файлы. */
-void processAllSourceFiles(sourcefiles_info sourceFilesPaths, bool needMerge, FILE* resultFile, string destinationDirectoryPath, FILE* getCurrentResultFile(string pathToResultFolder, string pathToCurrentSourceFile), size_t processChunkBuffer(char* inputBuffer, size_t inputBufferLength, char* resultBuffer));
+void processAllSourceFiles(sourcefiles_info sourceFilesPaths, bool needMerge, FILE* resultFile, string destinationDirectoryPath, string resultFilesSuffix, size_t processChunkBuffer(char* inputBuffer, size_t inputBufferLength, char* resultBuffer));
+
+/* Генерирует валидный путь к итоговому файлу и открывает сам файл, используя имя входного файла, 
+ * итоговую директорию и суффикс функции, который надо добавлять ко всем обработанным файлам. 
+ * Чтобы не было пересечений с другими файлами (из других папок, но с такими же названиями),
+ * если у файлов такое же имя, использует так же первый доступный номер (цифру) в конце имени файла.
+ * Например, после нормализации файла test.txt и если это первый нормализуемый файл с таким именем,
+ * в итоговой директории создастся и откроется файл test_normalized_1.txt. Если функция-обработчик другая,
+ * то и суффикс другой, например, после токенизации test.txt в результате будет test_tokenized_1.txt.
+ * ВОзвращает указатель на открытый файл в режиме бинарной записи. */
+FILE* getResultFilePtr(string pathToResultFolder, string pathToSourceFile, string fileSuffixName);
 #endif // !MY_UTILS

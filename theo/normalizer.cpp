@@ -31,9 +31,6 @@ static struct StringsNormalizerAndValidatorParameters {
 	const char* firstPartAdditionallyAllowedSymbols = NULL; 
 } normalizerParameters;
 
-// Создает и открывает в формате записи файл для текущего нормализуемого файла базы в итоговой директории
-static FILE* getNormalizedBaseFilePtr(string pathToResultFolder, string pathToBaseFile);
-
 /*Обрабатывает буфер с байтами, считанными из файла, делит их на строки, строки валидирует и нормализует.
 * Возвращает длину итогового буфера, который надо записать в файл с нормализованными строками */
 static size_t normalizeBufferLineByLine(char* inputBuffer, size_t inputBufferLength, char* resultBuffer);
@@ -189,34 +186,11 @@ int normalize(int argc, const char** argv) {
 	chrono::steady_clock::time_point begin = chrono::steady_clock::now();
 	
 	// Обрабатываем все указанные пользователем файлы с помощью наших функций нормализации и записываем в итоговый файл
-	processAllSourceFiles(sourceFilesPaths, needMerge, resultFile, destinationDirectoryPath, getNormalizedBaseFilePtr, normalizeBufferLineByLine);
+	processAllSourceFiles(sourceFilesPaths, needMerge, resultFile, destinationDirectoryPath, "normalized", normalizeBufferLineByLine);
 
 	chrono::steady_clock::time_point end = chrono::steady_clock::now();
 	cout << "\nBases normalized successfully! Execution time: " << chrono::duration_cast<std::chrono::seconds>(end - begin).count() << "[s]\n" << endl;
 	return ERROR_SUCCESS;
-}
-
-
-
-static FILE* getNormalizedBaseFilePtr(string pathToResultFolder, string pathToBaseFile) {
-
-	/* Поскольку могут быть файлы с одинаковыми названиями из разных директорий, выбираем имя итогового,
-	нормализованного файла, пока не найдём незанятое (допустим, если нормализуется два файла из разных директорий с
-	совпадающими именами, предположим, base1/test.txt и base2/test.txt, первый будет положен в итоговую директорию
-	как test_normalized_1.txt, а второй как test_normalized_2.txt)*/
-	string resultFilePath;
-	size_t i = 1;
-	do {
-		string resultFileName = getFileNameWithoutExtension(pathToBaseFile);
-		resultFilePath = joinPaths(pathToResultFolder, resultFileName + "_normalized_" + to_string(i++) + ".txt");
-	} while (isAnythingExistsByPath(resultFilePath));
-
-	// Записывать будем в открытый через fopen файл и в байтовом режиме для большей скорости
-	FILE* normalizedBaseFilePtr = fopen(resultFilePath.c_str(), "wb+");
-	if (normalizedBaseFilePtr == NULL) {
-		cout << "Cannot create file for normalized base by path: [" << resultFilePath << "]" << endl;
-	}
-	return normalizedBaseFilePtr;
 }
 
 static bool hasOccurency(const char* string, size_t stringLength, const char* const substring, const size_t substringLength) {

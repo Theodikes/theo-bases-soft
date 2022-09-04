@@ -153,7 +153,7 @@ void processFileByChunks(FILE* inputFile, FILE* resultFile, size_t processChunkB
 	delete[] resultBuffer;
 }
 
-void processAllSourceFiles(sourcefiles_info sourceFilesPaths, bool needMerge, FILE* resultFile, string destinationDirectoryPath, FILE* getCurrentResultFile(string pathToResultFolder, string pathToCurrentSourceFile), size_t processChunkBuffer(char* inputBuffer, size_t inputBufferLength, char* resultBuffer)) {
+void processAllSourceFiles(sourcefiles_info sourceFilesPaths, bool needMerge, FILE* resultFile, string destinationDirectoryPath, string resultFilesSuffix, size_t processChunkBuffer(char* inputBuffer, size_t inputBufferLength, char* resultBuffer)) {
 	for (string sourceFilePath : sourceFilesPaths) {
 
 		FILE* inputBaseFilePointer = fopen(sourceFilePath.c_str(), "rb");
@@ -163,9 +163,9 @@ void processAllSourceFiles(sourcefiles_info sourceFilesPaths, bool needMerge, FI
 		}
 
 		/* Если мы не складываем всё в один файл, то каждую итерацию цикла создаём под каждый входной файл
-		* свой итоговый файл, в котором будут находиться нормализованные строки из вхождного */
+		* свой итоговый файл, в котором будут находиться нормализованные строки из входного */
 		if (!needMerge) {
-			resultFile = getCurrentResultFile(destinationDirectoryPath, sourceFilePath);
+			resultFile = getResultFilePtr(destinationDirectoryPath, sourceFilePath, resultFilesSuffix);
 			if (resultFile == NULL) {
 				cout << "Error: cannot open result file [" << joinPaths(destinationDirectoryPath, sourceFilePath) << "] in write mode" << endl;
 				continue;
@@ -204,4 +204,25 @@ bool createDirectoryUserDialog(string creatingDirectoryPath) {
 	}
 	cout << "Destination directory successfully created!" << endl;
 	return true;
+}
+
+FILE* getResultFilePtr(string pathToResultFolder, string pathToSourceFile, string fileSuffixName) {
+
+	/* Поскольку могут быть файлы с одинаковыми названиями из разных директорий, выбираем имя итогового,
+	нормализованного файла, пока не найдём незанятое (допустим, если нормализуется два файла из разных директорий с
+	совпадающими именами, предположим, base1/test.txt и base2/test.txt, первый будет положен в итоговую директорию
+	как test_normalized_1.txt, а второй как test_normalized_2.txt)*/
+	string resultFilePath;
+	size_t i = 1;
+	do {
+		string resultFileName = getFileNameWithoutExtension(pathToSourceFile);
+		resultFilePath = joinPaths(pathToResultFolder, resultFileName + '_' + fileSuffixName + '_' + to_string(i++) + ".txt");
+	} while (isAnythingExistsByPath(resultFilePath));
+
+	// Записывать будем в открытый через fopen файл и в байтовом режиме для большей скорости
+	FILE* resultFilePtr = fopen(resultFilePath.c_str(), "wb+");
+	if (resultFilePtr == NULL) {
+		cout << "Cannot create file for " << fileSuffixName << " base by path : [" << resultFilePath << "] " << endl;
+	}
+	return resultFilePtr;
 }
