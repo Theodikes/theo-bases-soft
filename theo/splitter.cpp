@@ -10,12 +10,11 @@ static FILE* getNextSplittedFilePtr(const char* destinationDirectory, size_t lin
 
 // Опции для ввода аргументов вызова программы из cmd, показыаемые пользователю при использовании флага --help или -h
 static const char* const usages[] = {
-	"theo s [options]",
+	"theo s [options] [path]",
 	NULL,
 };
 
 int split(int argc, const char** argv) {
-	const char* inputFilePath = "merged.txt";
 	const char* destinationDirectoryPath = ".";
 	size_t	linesInOneFile = 0;
 
@@ -23,14 +22,17 @@ int split(int argc, const char** argv) {
 		OPT_HELP(),
 		OPT_GROUP("Basic options"),
 		OPT_INTEGER('l', "lines", &linesInOneFile, "Number of lines in each file after splitting"),
-		OPT_STRING('s', "source", &inputFilePath, "Path to file to be splitted ('merged.txt' by default)"),
-		OPT_STRING('d', "destination", &destinationDirectoryPath, "Destination directory, where the split files will be written\
-						      (current directory by default)"),
+		OPT_STRING('d', "destination", &destinationDirectoryPath, "Destination directory, where the splitted files will be written\n\t\t\t\t  (current directory by default)"),
+		OPT_GROUP("    Unmarked (positional) argument are considered as path to file that need to be deduplicated. "),
 		OPT_END(),
 	};
 	struct argparse argparse;
 	argparse_init(&argparse, options, usages, 0);
-	argparse_parse(&argparse, argc, argv);
+	int remainingArgumentsCount = argparse_parse(&argparse, argc, argv);
+	if (remainingArgumentsCount < 1) {
+		argparse_usage(&argparse);
+		return -1;
+	}
 
 	if (linesInOneFile < 1) {
 		cout << "Error: wrong 'lines' parameter value [" << linesInOneFile << "]: it must be a positive integer" << endl;
@@ -56,6 +58,7 @@ int split(int argc, const char** argv) {
 		cout << "Destination directory successfully created, start spitting file into it" << endl;
 	}
 
+	const char* inputFilePath = argv[0];
 	FILE* inputFilePtr = fopen(inputFilePath, "rb");
 	if (inputFilePtr == NULL) {
 		cout << "Error: cannot open [" << inputFilePath << "] because of invalid path or due to security policy reasons." << endl;
