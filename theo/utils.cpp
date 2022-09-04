@@ -133,5 +133,32 @@ void processFileByChunks(FILE* inputFile, FILE* resultFile, size_t processChunkB
 	// Освобождение памяти буферов и закрытие файлов
 	delete[] inputBuffer;
 	delete[] resultBuffer;
-	fclose(inputFile);
+}
+
+void processAllSourceFiles(robin_hood::unordered_flat_set<string> sourceFilesPaths, bool needMerge, FILE* resultFile, string destinationDirectoryPath, FILE* getCurrentResultFile(string pathToResultFolder, string pathToCurrentSourceFile), size_t processChunkBuffer(char* inputBuffer, size_t inputBufferLength, char* resultBuffer)) {
+	for (string sourceFilePath : sourceFilesPaths) {
+
+		FILE* inputBaseFilePointer = fopen(sourceFilePath.c_str(), "rb");
+		if (inputBaseFilePointer == NULL) {
+			cout << "File is skipped. Cannot open [" << sourceFilePath << "] because of invalid path or due to security policy reasons." << endl;
+			continue;
+		}
+
+		/* Если мы не складываем всё в один файл, то каждую итерацию цикла создаём под каждый входной файл
+		* свой итоговый файл, в котором будут находиться нормализованные строки из вхождного */
+		if (!needMerge) {
+			resultFile = getCurrentResultFile(destinationDirectoryPath, sourceFilePath);
+			if (resultFile == NULL) {
+				cout << "Error: cannot open result file [" << joinPaths(destinationDirectoryPath, sourceFilePath) << "] in write mode" << endl;
+				continue;
+			}
+		}
+
+		// Обрабатываем весь файл почанково и записываем все нормализованные строки в итоговый файл
+		processFileByChunks(inputBaseFilePointer, resultFile, processChunkBuffer);
+		// Закрываем входной файл
+		fclose(inputBaseFilePointer);
+
+	}
+	_fcloseall(); // Закрываем все итоговые файлы
 }

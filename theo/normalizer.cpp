@@ -215,29 +215,8 @@ int normalize(int argc, const char** argv) {
 
 	chrono::steady_clock::time_point begin = chrono::steady_clock::now();
 	
-	for (string sourceFilePath: sourceFilesPaths) {
-
-		FILE* inputBaseFilePointer = fopen(sourceFilePath.c_str(), "rb");
-		if (inputBaseFilePointer == NULL) {
-			cout << "File is skipped. Cannot open [" << sourceFilePath << "] because of invalid path or due to security policy reasons." << endl;
-			continue;
-		}
-
-		/* Если мы не складываем всё в один файл, то каждую итерацию цикла создаём под каждый входной файл
-		* свой итоговый файл, в котором будут находиться нормализованные строки из вхождного */
-		if (!needMerge) {
-			resultFile = getNormalizedBaseFilePtr(destinationDirectoryPath, sourceFilePath);
-			if (resultFile == NULL) {
-				cout << "Error: cannot open result file [" << joinPaths(destinationDirectoryPath, sourceFilePath) << "] in write mode" << endl;
-				continue;
-			}
-		}
-
-		// Обрабатываем весь файл почанково и записываем все нормализованные строки в итоговый файл
-		processFileByChunks(inputBaseFilePointer, resultFile, normalizeBufferLineByLine);
-		
-	}
-	_fcloseall(); // Закрываем все итоговые файлы
+	// Обрабатываем все указанные пользователем файлы с помощью наших функций нормализации и записываем в итоговый файл
+	processAllSourceFiles(sourceFilesPaths, needMerge, resultFile, destinationDirectoryPath, getNormalizedBaseFilePtr, normalizeBufferLineByLine);
 
 	chrono::steady_clock::time_point end = chrono::steady_clock::now();
 	cout << "\nBases normalized successfully! Execution time: " << chrono::duration_cast<std::chrono::seconds>(end - begin).count() << "[s]\n" << endl;
