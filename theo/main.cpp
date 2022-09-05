@@ -11,8 +11,6 @@ static const char* const usages[] = {
 };
 
 int main(int argc, const char** argv) {
-    if (addExecutablePathToWindowsRegisrty() == ERROR_SUCCESS) 
-        cout << "\nProgram has been successfully added to the Windows PATH, now it can be called from anywhere by writing 'theo' in cmd!\n" << endl;
 
     struct argparse argparse;
     struct argparse_option options[] = {
@@ -25,6 +23,9 @@ int main(int argc, const char** argv) {
     argc = argparse_parse(&argparse, argc, argv);
     if (argc < 1) {
         argparse_usage(&argparse);
+        if (addExecutablePathToWindowsRegisrty() == ERROR_SUCCESS)
+            cout << "\nProgram has been successfully added to the Windows PATH, now it can be called from anywhere by writing 'theo' in cmd!\n" << endl;
+        system("pause");
         return -1;
     }
 
@@ -57,14 +58,28 @@ static DWORD addExecutablePathToWindowsRegisrty() {
     // Проверяем, может, софт уже был ранее добавлен в PATH, если да, больше ничего делать не надо, выходим из функции
     if (RegQueryValueEx(registryHkey, programName, nullptr, nullptr, nullptr, nullptr) == ERROR_SUCCESS) return ALREADY_DONE;
 
+    // Получаем текущее значение пользовательской переменной PATH (одну строку со всеми путями) из регистра
+    DWORD environmentPATHVariableRealLength = _MAX_ENV;
+    BYTE bufferForPATHValue[_MAX_ENV + 1];
+    if (RegQueryValueEx(registryHkey, "Path", nullptr, nullptr, bufferForPATHValue, &environmentPATHVariableRealLength) != ERROR_SUCCESS) {
+        cout << "Cannot get current value of PATH variable in user environment" << endl;
+        return ERROR_ACCESS_DENIED;
+    }
+    bufferForPATHValue[environmentPATHVariableRealLength] = '\0';
+
     // Полный PATH пользователя в environment, добавляем в него текущую директорию
-    string pathVariableWithTheoDirectory = string(getenv("PATH")) + ";" + pathToDirectoryWithExecutable;
+    string pathVariableWithTheoDirectory = string(reinterpret_cast<const char*>(bufferForPATHValue)) + ";" + pathToDirectoryWithExecutable;
 
     // Пытаемся установить текущую директорию, в которой находится исполняемый файл софта, в Windows PATH
     if (RegSetValueEx(registryHkey, programName, 0, REG_SZ, (BYTE*)pathToDirectoryWithExecutable.c_str(), static_cast<DWORD>(pathToDirectoryWithExecutable.length())) != ERROR_SUCCESS or RegSetValueEx(registryHkey, "Path", 0, REG_SZ, (BYTE*)pathVariableWithTheoDirectory.c_str(), static_cast<DWORD>(pathVariableWithTheoDirectory.length())) != ERROR_SUCCESS) {
         cout << "Cannot add program to PATH (to Windows regisrty)" << endl;
         return ERROR_ACCESS_DENIED;
     }
+
+    /* Принудительно обновляем регистр, чтобы можно было без перезагрузки компьютера вызывать программу,
+     * только что добавленную в PATH, из других окон консоли */
+    SendMessageTimeout(HWND_BROADCAST, WM_SETTINGCHANGE, 0, (LPARAM)"Environment", SMTO_BLOCK, 100, NULL);
+
     // Закрываем реестр после работы
     RegCloseKey(registryHkey);
     return ERROR_SUCCESS;
