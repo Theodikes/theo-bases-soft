@@ -88,6 +88,17 @@ ull getAvailableMemoryInBytes(void) {
 	return ms.ullAvailPhys;
 }
 
+ull getTotalMemoryInBytes(void) {
+	MEMORYSTATUSEX ms;
+	ms.dwLength = sizeof(ms);
+	GlobalMemoryStatusEx(&ms);
+	return ms.ullTotalPhys;
+}
+
+size_t getMemoryUsagePercent(void) {
+	return static_cast<size_t>((getTotalMemoryInBytes() - getAvailableMemoryInBytes()) / (long double) getTotalMemoryInBytes() * 100);
+}
+
 bool isAnythingExistsByPath(string path) {
 	return GetFileAttributes(path.c_str()) != INVALID_FILE_ATTRIBUTES;
 }
@@ -108,6 +119,10 @@ bool isValidRegex(string regularExpression) {
 
 string getWorkingDirectoryPath() {
 	return fs::current_path().string();
+}
+
+string getDirectoryFromFilePath(string filePath) {
+	return fs::absolute(filePath).parent_path().string();
 }
 
 void processFileByChunks(FILE* inputFile, FILE* resultFile, size_t processChunkBuffer(char*, size_t, char*)) {

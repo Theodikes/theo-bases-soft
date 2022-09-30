@@ -2,17 +2,20 @@
 #ifndef MY_UTILS
 #define MY_UTILS
 
-#include <Windows.h>
 #include <string>
 #include <iostream>
 #include <regex>
 #include <stdbool.h>
 #include <filesystem>
+#include <dbstl_set.h> // https://docs.oracle.com/cd/E17076_05/html/index.html (Berkeley DB)
 #include "libs/argparse/argparse.h" // https://github.com/cofyc/argparse
 #include "libs/robinhood.h" // https://github.com/martinus/robin-hood-hashing
+#include <Windows.h>
 
 using namespace std;
+using namespace dbstl;
 namespace fs = std::filesystem;
+
 
 // Оптимальный размер чанка диска (ssd) для записи и чтения за одну операцию (fread/fwrite), вычислено тестированием
 constexpr unsigned OPTIMAL_DISK_CHUNK_SIZE = 1024 * 1024 * 64;
@@ -25,6 +28,9 @@ constexpr unsigned OPTIMAL_DISK_CHUNK_SIZE = 1024 * 1024 * 64;
 
 // Сокращение ull для уменьшения количества кода и размера аргументов функций
 #define ull unsigned long long
+
+// Тип для хранилища уникальных хешей (чисел unsigned long long), расположенного в дисковой памяти
+typedef db_set<ull, ElementHolder<ull>> db_hashset;
 
 // Информация о входных файлах, переданных юзером для обработки, сделал отдельный тип для лучшего понимания
 #define sourcefiles_info robin_hood::unordered_flat_set<string>
@@ -63,11 +69,20 @@ long long getFileSize(const char* pathToFile);
 // Возвращает количество свободной оперативной памяти в байтах
 ull getAvailableMemoryInBytes(void);
 
+// Возвращает количество максимальной оперативной памяти в байтах (с учетом используемой)
+ull getTotalMemoryInBytes(void);
+
+// Возвращает процент используемой оперативной памяти от её общего количества
+size_t getMemoryUsagePercent(void);
+
 // Существует ли что-либо по указанному пути
 bool isAnythingExistsByPath(string path);
 
 // Является ли указанный путь путём к директории
 bool isDirectory(string path);
+
+// Возвращает строку с путём к директории, в которой лежит файл, находящийся по пути filePath
+string getDirectoryFromFilePath(string filePath);
 
 // Является ли регулярное выражение (переданное строкой) валидным
 bool isValidRegex(string regularExpression);
@@ -82,7 +97,7 @@ void checkDestinationDirectory(const char* destinationDirectoryPath);
 // Спрашиваем пользователя, надо ли создавать папку по указанному пути, если создана - возвращает true, иначе false
 bool createDirectoryUserDialog(string creatingDirectoryPath);
 
-/* Считывает переданный файлоптимальными для чтения чанками(с записью чанков во временный буфер).
+/* Считывает переданный файл оптимальными для чтения чанками (с записью чанков во временный буфер).
 * Каждый считанный чанк в буфере обрезается по границе последней строки, далее во входном файле идёт отступ назад
 * на отрезанный кусок неполной строки, а полученный буфер обрабатывается функцией processChunkBuffer, уникальной
 * для каждой команды(у deduplicate будет одна функция, у normalize другая), и итоговые данные после обработки
