@@ -1,3 +1,7 @@
 *.vcxproj
 *.vcxproj.*
 libs/
+*.db
+__db.001
+__db.002
+__db.003
