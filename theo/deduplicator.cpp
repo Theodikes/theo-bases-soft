@@ -148,7 +148,6 @@ static size_t deduplicateBufferLineByLine(char* buffer, size_t buflen, char* res
         hashesDB.createDB();
         cout << "Not enough RAM. Start using disk space to deduplicate. Speed will be decreased." << endl;
     }
-    cout << getMemoryUsagePercent() << endl;
     // Изначальное оптимальное значения для хеширования символов - 5381 (почему так - смотреть http://www.cse.yorku.ca/~oz/hash.html)
     ull hashStartValue = 5381, currentHash = hashStartValue;
 
