@@ -1,28 +1,28 @@
 ﻿#include "utils.hpp"
 
-bool startsWith(const char* str, const char* prefix)
+bool startsWith(const char* str, const char* prefix) noexcept
 {
 	size_t lenpre = strlen(prefix),
 		lenstr = strlen(str);
 	return lenstr < lenpre ? false : memcmp(prefix, str, lenpre) == 0;
 }
 
-bool endsWith(const char* str, const char* suffix)
+bool endsWith(const char* str, const char* suffix) noexcept
 {
-	if (!str or !suffix) return 0;
+	if (!str or !suffix) return false;
 	size_t lenstr = strlen(str);
 	size_t lensuffix = strlen(suffix);
-	if (lensuffix > lenstr) return 0;
+	if (lensuffix > lenstr) return false;
 
 	return strncmp(str + lenstr - lensuffix, suffix, lensuffix) == 0;
 }
 
-string joinPaths(string dirPath, string filePath) {
+string joinPaths(string dirPath, string filePath) noexcept {
 	return (fs::path(dirPath) / fs::path(filePath)).string();
 }
 
 
-bool processSourceFileOrDirectory(sourcefiles_info* textFilesPaths, string path, bool recursive)
+bool processSourceFileOrDirectory(sourcefiles_info& textFilesPaths, string path, bool recursive)
 {
 	if (!isAnythingExistsByPath(path)) {
 		cout << "File doesn`t exist: [" << path <<  "]" << endl;
@@ -39,19 +39,19 @@ bool processSourceFileOrDirectory(sourcefiles_info* textFilesPaths, string path,
 	return true;
 }
 
-bool addFileToSourceList(sourcefiles_info* sourceTextFilesPaths, string filePath) {
+bool addFileToSourceList(sourcefiles_info& sourceTextFilesPaths, string filePath) noexcept {
 	if (!(endsWith(filePath.c_str(), ".txt"))) return false;
-	(*sourceTextFilesPaths).insert(filePath);
+	sourceTextFilesPaths.insert(filePath);
 	return true;
 }
 
-sourcefiles_info getSourceFilesFromUserInput(size_t sourcePathsCount, const char** userSourcePaths, bool checkDirectoriesRecursive) {
+sourcefiles_info getSourceFilesFromUserInput(size_t sourcePathsCount, const char** userSourcePaths, bool checkDirectoriesRecursive) noexcept {
 	// Файлы для нормализации (set, чтобы избежать повторной обработки одних и тех же файлов)
 	sourcefiles_info sourceFilesPaths;
 
 	// Обрабатываем все пути, указанные пользователем, получаем оттуда все txt-файлы и сохраняем их в sourceFilesPaths
 	for (size_t i = 0; i < sourcePathsCount; i++) {
-		processSourceFileOrDirectory(&sourceFilesPaths, userSourcePaths[i], checkDirectoriesRecursive);
+		processSourceFileOrDirectory(sourceFilesPaths, userSourcePaths[i], checkDirectoriesRecursive);
 	}
 
 	// Если ни одного валидного пути не оказалось, выходим
@@ -63,12 +63,13 @@ sourcefiles_info getSourceFilesFromUserInput(size_t sourcePathsCount, const char
 	return sourceFilesPaths;
 }
 
-string getFileNameWithoutExtension(string pathToFile) {
+string getFileNameWithoutExtension(string pathToFile) noexcept {
+	if (not fs::exists(pathToFile)) return "";
 	return filesystem::path(pathToFile).stem().string();
 }
 
 
-size_t getLinesCountInText(char* bytes) {
+size_t getLinesCountInText(char* bytes) noexcept {
 	size_t stringsCount = 0;
 	while (*bytes++) if (*bytes == 10) stringsCount++;
 	return stringsCount;
@@ -81,33 +82,45 @@ long long getFileSize(const char* pathToFile) {
 	return -1;
 }
 
-ull getAvailableMemoryInBytes(void) {
+static LPMEMORYSTATUSEX getMemoryInfo(void) noexcept {
 	MEMORYSTATUSEX ms;
 	ms.dwLength = sizeof(ms);
-	GlobalMemoryStatusEx(&ms);
-	return ms.ullAvailPhys;
+	DWORD ret = GlobalMemoryStatusEx(&ms);
+	if (ret == 0) {
+		cout << "Cannot get info about computer memory. Program may working incorrectly." << endl;
+		return NULL;
+	}
+	return &ms;
 }
 
-ull getTotalMemoryInBytes(void) {
-	MEMORYSTATUSEX ms;
-	ms.dwLength = sizeof(ms);
-	GlobalMemoryStatusEx(&ms);
-	return ms.ullTotalPhys;
+ull getAvailableMemoryInBytes(void) noexcept {
+	LPMEMORYSTATUSEX ms = getMemoryInfo();
+	if (ms == NULL) return 0;
+	return ms->ullAvailPhys;
 }
 
-size_t getMemoryUsagePercent(void) {
-	return static_cast<size_t>((getTotalMemoryInBytes() - getAvailableMemoryInBytes()) / (long double) getTotalMemoryInBytes() * 100);
+ull getTotalMemoryInBytes(void) noexcept {
+	LPMEMORYSTATUSEX ms = getMemoryInfo();
+	if (ms == NULL) return 0;
+	return ms->ullTotalPhys;
 }
 
-bool isAnythingExistsByPath(string path) {
+size_t getMemoryUsagePercent(void) noexcept {
+	/* Если нет информации о памяти, считаем общую память за единицу, чтобы общий процент
+	* использованной памяти считался 100 (вся память использована), дабы программа не вылетела */
+	ull totalRAMInBytes = getTotalMemoryInBytes() ? getTotalMemoryInBytes() : 1;
+	return static_cast<size_t>((totalRAMInBytes - getAvailableMemoryInBytes()) / (long double) totalRAMInBytes * 100);
+}
+
+bool isAnythingExistsByPath(string path) noexcept {
 	return GetFileAttributes(path.c_str()) != INVALID_FILE_ATTRIBUTES;
 }
 
-bool isDirectory(string path) {
+bool isDirectory(string path) noexcept {
 	return GetFileAttributes(path.c_str()) & FILE_ATTRIBUTE_DIRECTORY;
 }
 
-bool isValidRegex(string regularExpression) {
+bool isValidRegex(string regularExpression) noexcept {
 	try {
 		regex re(regularExpression);
 	}
@@ -117,11 +130,12 @@ bool isValidRegex(string regularExpression) {
 	return true;
 }
 
-string getWorkingDirectoryPath() {
+string getWorkingDirectoryPath() noexcept {
 	return fs::current_path().string();
 }
 
-string getDirectoryFromFilePath(string filePath) {
+string getDirectoryFromFilePath(string filePath) noexcept {
+	if (not fs::exists(filePath)) return "";
 	return fs::absolute(filePath).parent_path().string();
 }
 
@@ -196,7 +210,7 @@ void processAllSourceFiles(sourcefiles_info sourceFilesPaths, bool needMerge, FI
 	_fcloseall(); // Закрываем все итоговые файлы
 }
 
-void checkDestinationDirectory(const char* destinationDirectoryPath) {
+void checkDestinationDirectory(const char* destinationDirectoryPath) noexcept {
 	// Если на указанном пользователем пути к итоговой директории что-то есть, и это что-то - не папка, выходим
 	if (isAnythingExistsByPath(destinationDirectoryPath) and not isDirectory(destinationDirectoryPath)) {
 		cout << "Error: something exists by path [" << destinationDirectoryPath << "] and this isn`t directory" << endl;
@@ -207,7 +221,7 @@ void checkDestinationDirectory(const char* destinationDirectoryPath) {
 	if (not isAnythingExistsByPath(destinationDirectoryPath) and not createDirectoryUserDialog(destinationDirectoryPath)) exit(1);
 }
 
-bool createDirectoryUserDialog(string creatingDirectoryPath) {
+bool createDirectoryUserDialog(string creatingDirectoryPath) noexcept {
 	char answer;
 	cout << "Destination directory doesn`t exist, create it? (y/n): ";
 	cin >> answer;

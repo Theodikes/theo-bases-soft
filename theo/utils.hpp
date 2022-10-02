@@ -36,66 +36,66 @@ typedef db_set<ull, ElementHolder<ull>> db_hashset;
 #define sourcefiles_info robin_hood::unordered_flat_set<string>
 
 // Проверяет, начинается ли строка с определённой другой строки (например, startsWith("test", "testing") == true)
-bool startsWith(const char* pre, const char* str);
+bool startsWith(const char* pre, const char* str) noexcept;
 
 // Проверяет, заканчивается ли строка определённой другой строкой (например, endsWith("testing", "ing") == true)
-bool endsWith(const char* str, const char* suffix);
+bool endsWith(const char* str, const char* suffix) noexcept;
 
 // Функция для объединения абсолютного пути к папке и имени файла в абсолютный путь к файлу. Возвращает итоговый путь
-string joinPaths(string dirPath, string filePath);
+string joinPaths(string dirPath, string filePath) noexcept;
 
 // Функция принимает в качестве аргумента валидный путь к файлу и возвращает имя файла (без расширения)
-string getFileNameWithoutExtension(string pathToFile);
+string getFileNameWithoutExtension(string pathToFile) noexcept;
 
 /* Добавляет в массив путей к файлам, который передан в первом аргументе, все .txt файлы, находящиеся в директории,
 путь к которой передан вторым аргументом, и её поддиректориях, либо сам файл, если вторым аргументом передан путь
 не к директории, а к файлу */
-bool processSourceFileOrDirectory(sourcefiles_info*, string path, bool recursive);
+bool processSourceFileOrDirectory(sourcefiles_info&, string path, bool recursive);
 
 // Заносит файл по указанному пути, если он имеет расширение .txt, в список файлов для обработки (нормализации, дедупликации etc)
-bool addFileToSourceList(sourcefiles_info*, string filePath);
+bool addFileToSourceList(sourcefiles_info&, string filePath) noexcept;
 
 /* Получает все входные пути для обработки из аргументов, введённых юзером (и папки, и файлы).
 * Возвращает список путей ко всем входным уникальным файлам (включая файлы из директорий и поддиректорий, 
 * если параметр рекурсии - true), которые будут обработаны софтом. */
-sourcefiles_info getSourceFilesFromUserInput(size_t sourcePathsCount, const char** userSourcePaths, bool checkDirectoriesRecursive);
+sourcefiles_info getSourceFilesFromUserInput(size_t sourcePathsCount, const char** userSourcePaths, bool checkDirectoriesRecursive) noexcept;
 
 // Считает количество строк, разделённых символами переноса строк, в тексте. Каждая строка должна заканчиваться символом \n
-size_t getLinesCountInText(char* bytes);
+size_t getLinesCountInText(char* bytes) noexcept;
 
 // Возвращает количество байт информации в файле, если файл не найден или к нему нет доступа, возаращает -1
 long long getFileSize(const char* pathToFile);
 
 // Возвращает количество свободной оперативной памяти в байтах
-ull getAvailableMemoryInBytes(void);
+ull getAvailableMemoryInBytes(void) noexcept;
 
 // Возвращает количество максимальной оперативной памяти в байтах (с учетом используемой)
-ull getTotalMemoryInBytes(void);
+ull getTotalMemoryInBytes(void) noexcept;
 
 // Возвращает процент используемой оперативной памяти от её общего количества
-size_t getMemoryUsagePercent(void);
+size_t getMemoryUsagePercent(void) noexcept;
 
 // Существует ли что-либо по указанному пути
-bool isAnythingExistsByPath(string path);
+bool isAnythingExistsByPath(string path) noexcept;
 
 // Является ли указанный путь путём к директории
-bool isDirectory(string path);
+bool isDirectory(string path) noexcept;
 
 // Возвращает строку с путём к директории, в которой лежит файл, находящийся по пути filePath
-string getDirectoryFromFilePath(string filePath);
+string getDirectoryFromFilePath(string filePath) noexcept;
 
 // Является ли регулярное выражение (переданное строкой) валидным
-bool isValidRegex(string regularExpression);
+bool isValidRegex(string regularExpression) noexcept;
 
 // Возвращает строку, содержащую путь к текущец директории (откуда вызвана программа, исполняемый файл)
-string getWorkingDirectoryPath();
+string getWorkingDirectoryPath() noexcept;
 
 /* Проверяет директорию, указанную пользователем как директорию вывода, если есть какая-то оишбка
  * (например, на месте директории с таким же именем уже присутствует файл)- завершает работу программы */
-void checkDestinationDirectory(const char* destinationDirectoryPath);
+void checkDestinationDirectory(const char* destinationDirectoryPath) noexcept;
 
 // Спрашиваем пользователя, надо ли создавать папку по указанному пути, если создана - возвращает true, иначе false
-bool createDirectoryUserDialog(string creatingDirectoryPath);
+bool createDirectoryUserDialog(string creatingDirectoryPath) noexcept;
 
 /* Считывает переданный файл оптимальными для чтения чанками (с записью чанков во временный буфер).
 * Каждый считанный чанк в буфере обрезается по границе последней строки, далее во входном файле идёт отступ назад
