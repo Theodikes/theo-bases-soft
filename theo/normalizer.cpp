@@ -66,7 +66,7 @@ static const char* const usages[] = {
 };
 
 int normalize(int argc, const char** argv) {
-	const char* destinationDirectoryPath = "."; // Путь к итоговой директории, куда будут сложены нормализованные файлы
+	const char* destinationPath = NULL; // Путь к итоговой директории, куда будут сложены нормализованные файлы
 	const char* firstPartRegexString = NULL; // Строка с пользовательским регулярным выражением для проверки емейлов
 	const char* passwordRegexString = NULL; // Строка с пользовательским регулярным выражением для проверки паролей
 	// Итоговый сепаратор, которым будут разделены email/log/num и password в нормализованной базе
@@ -74,15 +74,13 @@ int normalize(int argc, const char** argv) {
 	// Требуется ли рекурсивно искать файлы для нормализации в переданных пользователем директориях
 	bool checkSourceDirectoriesRecursive = false;
 	bool needMerge = false; // Требуется ли объединять нормализованные строки со всех файлов в один итоговый
-	const char* pathToMergedResultFile = "normalized_merged.txt"; // Путь к итоговому файлу, если надо объединять
 	const char* basesType = "emailpass"; // Тип нормализуемых баз, по умолчанию email:pass
 
 	struct argparse_option options[] = {
 		OPT_HELP(),
 		OPT_GROUP("\nFiles options:\n"),
-		OPT_STRING('d', "destination", &destinationDirectoryPath, "absolute or relative path to result folder (default: current directory"),
-		OPT_BOOLEAN('m', "merge", &needMerge, "merge strings from all normalized files to one destination file\n\t\t\t\t  if this flag is set, 'destination' option will be ignored, use 'merged-file' instead"),
-		OPT_STRING('f', "merged-file", &pathToMergedResultFile, "path to merged result file (default - 'normalized_merged.txt')"),
+		OPT_STRING('d', "destination", &destinationPath, "absolute or relative path to result folder(default: current directory)\n\t\t\t\t  or file, if merge parameter is specified (default: normalized_merged.txt)"),
+		OPT_BOOLEAN('m', "merge", &needMerge, "merge strings from all normalized files to one destination file"),
 		OPT_BOOLEAN('r', "recursive", &checkSourceDirectoriesRecursive, "check source directories recursive (default - false)"),
 		OPT_GROUP("All unmarked (positional) arguments are considered paths to files and folders with bases that need to be normalized.\nExample command: 'theo n -d result needNormalize1.txt needNormalize2.txt'. More: github.com/Theodikes/theo-bases-soft"),
 
@@ -114,10 +112,28 @@ int normalize(int argc, const char** argv) {
 		return -1;
 	}
 
+	/* Поскольку при указании этого параметра к нему просто добавляется единица, а нужно,
+	* чтобы пользователь мог вообще отключить приведение первой части к нижнему регистру,
+	* то делаем так, что если добавилась единица, параметр становится false */
+	if (normalizerParameters.firstPartToLowerCase != 1) normalizerParameters.firstPartToLowerCase = false;
+
 	sourcefiles_info sourceFilesPaths = getSourceFilesFromUserInput(remainingArgumentsCount, argv, checkSourceDirectoriesRecursive);
 
-	// Проверяем, всё ли нормально с итоговой директорией и существует ли она
-	if (not needMerge) checkDestinationDirectory(destinationDirectoryPath);
+
+	FILE* resultFile = NULL;
+	// Проверяем, всё ли нормально с итоговой директорией (или итоговым файлом)
+	if (needMerge) {
+		if (not destinationPath) destinationPath = "normalized_merged.txt";
+		if (isAnythingExistsByPath(destinationPath)) {
+			cout << "Error: cannot create result file, something exist on path [" << destinationPath << ']' << endl;
+			exit(1);
+		}
+		resultFile = fopen(destinationPath, "wb+");
+	}
+	else {
+		if (not destinationPath) destinationPath = ".";
+		checkDestinationDirectory(destinationPath);
+	}
 
 	/* Указываем в параметрах нормализации тот тип баз, который ввёл пользователь, и все базы будут обрабатываться
 	* по этому типу (как email:pass, num:pass или login:pass) */
@@ -180,13 +196,10 @@ int normalize(int argc, const char** argv) {
 		if (normalizerParameters.passwordNeededOccurency != NULL)
 		normalizerParameters.passwordOccurencyLength = strlen(normalizerParameters.passwordNeededOccurency);
 
-	FILE* resultFile = NULL;
-	if (needMerge) resultFile = fopen(pathToMergedResultFile, "wb+");
-
 	chrono::steady_clock::time_point begin = chrono::steady_clock::now();
 	
 	// Обрабатываем все указанные пользователем файлы с помощью наших функций нормализации и записываем в итоговый файл
-	processAllSourceFiles(sourceFilesPaths, needMerge, resultFile, destinationDirectoryPath, "normalized", normalizeBufferLineByLine);
+	processAllSourceFiles(sourceFilesPaths, needMerge, resultFile, destinationPath, "normalized", normalizeBufferLineByLine);
 
 	chrono::steady_clock::time_point end = chrono::steady_clock::now();
 	cout << "\nBases normalized successfully! Execution time: " << chrono::duration_cast<std::chrono::seconds>(end - begin).count() << "[s]\n" << endl;
@@ -241,7 +254,7 @@ static bool isPhoneNumberValid(char* number, size_t numberLength) {
 		// В номере первым символом может быть '+' с кодом страны, например, +33
 		if (number[i] == '+' and i == 0) continue;
 		// В номере могут встречаться и другие нецифровые символы, но после каждого обязательно должна идти цифра
-		if (isExtraAllowedSymbol(number[i]) and i != numberLength - 1 and i != 0 and isdigit(number[i + 1])) continue;
+		if (isExtraAllowedSymbol(number[i]) and i != numberLength - 1 and i != 0 and (isdigit(number[i + 1]) or number[i] == ')' and (number [i + 1] == ' ' or number[i + 1] == '-'))) continue;
 		// Кроме специальных символов, номер может состоять исключительно из цифр
 		if (not isdigit(number[i])) return false;
 	}

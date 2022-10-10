@@ -23,22 +23,20 @@ static const char* const usages[] = {
 int tokenize(int argc, const char** argv) {
 	// Брать ли файлы для токенизации из указанных пользователем директорий рекурсивно (проверяя субдиректории)
 	bool checkSourceDirectoriesRecursive = false; 
-	const char* destinationDirectoryPath = "."; // Путь к итоговой директории, куда будут сложены нормализованные файлы
+	const char* destinationPath = NULL; // Путь к итоговой папке или файлу (если needMerge = true)
 	bool needMerge = false; // Требуется ли объединять нормализованные строки со всех файлов в один итоговый
-	const char* pathToMergedResultFile = "tokenized_merged.txt"; // Путь к итоговому файлу, если надо объединять
 	const char* resultStringPart = "first";
 
 	struct argparse_option options[] = {
 		OPT_HELP(),
+		OPT_GROUP("Basic tokenize options"),
+		OPT_STRING('p', "part", &resultStringPart, "which part of strings to get, 'first' or 'last' (default - first)"),
+		OPT_STRING('s', "separators", &(tokenizerParameters.separatorSymbols), "a string containing possible delimiter characters\n\t\t\t\t  (between first part and password), enter without spaces. (default - \":;\")"),
 		OPT_GROUP("File options"),
-		OPT_STRING('d', "destination", &destinationDirectoryPath, "absolute or relative path to result folder (default: current directory"),
-		OPT_BOOLEAN('m', "merge", &needMerge, "merge strings from all tokenized files to one destination file\n\t\t\t\t  if this flag is set, 'destination' option will be ignored, use 'merged-file' instead"),
-		OPT_STRING('f', "merged-file", &pathToMergedResultFile, "path to merged result file (default - 'tokenized_merged.txt')"),
+		OPT_BOOLEAN('m', "merge", &needMerge, "merge strings from all tokenized files to one destination file"),
+		OPT_STRING('d', "destination", &destinationPath, "absolute or relative path to result folder(default: current directory)\n\t\t\t\t  or file, if merge parameter is specified (default: tokenized_merged.txt)"),
 		OPT_BOOLEAN('r', "recursive", &checkSourceDirectoriesRecursive, "check source directories recursive (default - false)"),
 		OPT_GROUP("All unmarked (positional) arguments are considered paths to files and folders with bases that need to be tokenized.\nExample command: 'theo n -d result base1.txt base2.txt'. More: github.com/Theodikes/theo-bases-soft"),
-		OPT_GROUP("Basic tokenize options"),
-		OPT_STRING('p', "part", &resultStringPart, "What part of strings to get, 'first' or 'last' (default - first)"),
-		OPT_STRING('s', "separators", &(tokenizerParameters.separatorSymbols), "a string containing possible delimiter characters\n\t\t\t\t  (between first part and password), enter without spaces. (default - \":;\")"),
 		OPT_END(),
 	};
 	struct argparse argparse;
@@ -55,11 +53,20 @@ int tokenize(int argc, const char** argv) {
 	// Получаем список всех валидных файлов, которые надо токенизировать
 	sourcefiles_info sourceFilesPaths = getSourceFilesFromUserInput(remainingArgumentsCount, argv, checkSourceDirectoriesRecursive);
 
+	FILE* resultFile = NULL;
+
 	// Проверяем, всё ли нормально с итоговой директорией (или итоговым файлом)
-	if (not needMerge) checkDestinationDirectory(destinationDirectoryPath);
-	else if (isAnythingExistsByPath(pathToMergedResultFile)) {
-		cout << "Error: cannot create result file, something exist on path [" << pathToMergedResultFile << ']' << endl;
-		exit(1);
+	if (needMerge) {
+		if (not destinationPath) destinationPath = "tokenized_merged.txt";
+		if (isAnythingExistsByPath(destinationPath)) {
+			cout << "Error: cannot create result file, something exist on path [" << destinationPath << ']' << endl;
+			exit(1);
+		}
+		resultFile = fopen(destinationPath, "wb+");
+	}
+	else {
+		if (not destinationPath) destinationPath = ".";
+		checkDestinationDirectory(destinationPath);
 	}
 
 	if (string(resultStringPart) == "first") tokenizerParameters.onlyFirstPart = true;
@@ -69,10 +76,7 @@ int tokenize(int argc, const char** argv) {
 		exit(1);
 	}
 
-	FILE* resultFile = NULL;
-	if (needMerge) resultFile = fopen(pathToMergedResultFile, "wb+");
-
-	processAllSourceFiles(sourceFilesPaths, needMerge, resultFile, destinationDirectoryPath, "tokenized", tokenizeBufferLineByLine);
+	processAllSourceFiles(sourceFilesPaths, needMerge, resultFile, destinationPath, "tokenized", tokenizeBufferLineByLine);
 
 	chrono::steady_clock::time_point end = chrono::steady_clock::now();
 	cout << endl << (sourceFilesPaths.size() == 1 ? "File" : "All files") << " tokenized successfully! Execution time: " << chrono::duration_cast<std::chrono::seconds>(end - begin).count() << "[s]\n" << endl;
