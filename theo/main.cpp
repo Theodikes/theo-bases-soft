@@ -6,7 +6,7 @@
 static DWORD addExecutablePathToWindowsRegisrty();
 
 static const char* const usages[] = {
-    "theo [global options] [command] [command options] [command args]",
+    "theo [command] [-command options] [command args]",
     NULL,
 };
 
