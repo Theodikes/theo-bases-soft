@@ -22,8 +22,9 @@ int split(int argc, const char** argv) {
 		OPT_HELP(),
 		OPT_GROUP("Basic options"),
 		OPT_INTEGER('l', "lines", &linesInOneFile, "Number of lines in each file after splitting"),
+		OPT_GROUP("File options"),
 		OPT_STRING('d', "destination", &destinationDirectoryPath, "Destination directory, where the splitted files will be written\n\t\t\t\t  (current directory by default)"),
-		OPT_GROUP("    Unmarked (positional) argument are considered as path to file that need to be deduplicated. "),
+		OPT_GROUP("    Unmarked (positional) argument are considered as path to file that need to be splitted. "),
 		OPT_END(),
 	};
 	struct argparse argparse;
