@@ -14,7 +14,7 @@ int merge(int argc, const char** argv) {
 
 	struct argparse_option options[] = {
 		OPT_HELP(),
-		OPT_GROUP("Basic options"),
+		OPT_GROUP("File options"),
 		OPT_STRING('d', "destination", &resultFilePath, "Path to result file with all merged strings ('merged.txt' by default)"),
 		OPT_BOOLEAN('r', "recursive", &checkSourceDirectoriesRecursive, "check source directories recursive (default - false)"),
 		OPT_GROUP("All unmarked arguments are considered paths to files and folders with bases that need to be merged."),
