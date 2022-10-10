@@ -36,7 +36,7 @@ int tokenize(int argc, const char** argv) {
 		OPT_BOOLEAN('m', "merge", &needMerge, "merge strings from all tokenized files to one destination file"),
 		OPT_STRING('d', "destination", &destinationPath, "absolute or relative path to result folder(default: current directory)\n\t\t\t\t  or file, if merge parameter is specified (default: tokenized_merged.txt)"),
 		OPT_BOOLEAN('r', "recursive", &checkSourceDirectoriesRecursive, "check source directories recursive (default - false)"),
-		OPT_GROUP("All unmarked (positional) arguments are considered paths to files and folders with bases that need to be tokenized.\nExample command: 'theo n -d result base1.txt base2.txt'. More: github.com/Theodikes/theo-bases-soft"),
+		OPT_GROUP("All unmarked (positional) arguments are considered paths to files and folders with bases that need to be tokenized.\nExample command: 'theo t -d result base1.txt base2.txt'. More: github.com/Theodikes/theo-bases-soft"),
 		OPT_END(),
 	};
 	struct argparse argparse;
