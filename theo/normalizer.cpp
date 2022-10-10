@@ -121,19 +121,7 @@ int normalize(int argc, const char** argv) {
 
 
 	FILE* resultFile = NULL;
-	// Проверяем, всё ли нормально с итоговой директорией (или итоговым файлом)
-	if (needMerge) {
-		if (not destinationPath) destinationPath = "normalized_merged.txt";
-		if (isAnythingExistsByPath(destinationPath)) {
-			cout << "Error: cannot create result file, something exist on path [" << destinationPath << ']' << endl;
-			exit(1);
-		}
-		resultFile = fopen(destinationPath, "wb+");
-	}
-	else {
-		if (not destinationPath) destinationPath = ".";
-		checkDestinationDirectory(destinationPath);
-	}
+	processDestinationPath(&destinationPath, needMerge, &resultFile, "normalized_merged.txt");
 
 	/* Указываем в параметрах нормализации тот тип баз, который ввёл пользователь, и все базы будут обрабатываться
 	* по этому типу (как email:pass, num:pass или login:pass) */

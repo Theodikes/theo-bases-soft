@@ -210,6 +210,31 @@ void processAllSourceFiles(sourcefiles_info sourceFilesPaths, bool needMerge, FI
 	_fcloseall(); // Закрываем все итоговые файлы
 }
 
+void processDestinationPath(const char** destinationPathPtr, bool needMerge, FILE** resultFile, const char* defaultResultMergedFilePath) noexcept {
+	// Проверяем, всё ли нормально с итоговой директорией (или итоговым файлом)
+	if (needMerge) {
+		if (not *destinationPathPtr) *destinationPathPtr = defaultResultMergedFilePath;
+		if (isAnythingExistsByPath(*destinationPathPtr)) {
+			cout << "Error: cannot create result file, something exist on path [" << *destinationPathPtr << ']' << endl;
+			exit(1);
+		}
+
+		/* Открываем итоговый файл и присваиваем значение на открытый файл по указателю, чтобы он
+		* был доступен вне функции */
+		*resultFile = fopen(*destinationPathPtr, "wb+");
+		if (*resultFile == NULL) {
+			cout << "Error: cannot open result file [" << *destinationPathPtr << " in write mode" << endl;
+			exit(ERROR_OPEN_FAILED);
+		}
+	}
+	else {
+		// Если пользователь не указал путь к итоговой директории, путь по умолчанию - рабочая директория
+		if (not *destinationPathPtr) *destinationPathPtr = ".";
+		// Проверяем директорию на валидность и есть ли к ней доступ
+		checkDestinationDirectory(*destinationPathPtr);
+	}
+}
+
 void checkDestinationDirectory(const char* destinationDirectoryPath) noexcept {
 	// Если на указанном пользователем пути к итоговой директории что-то есть, и это что-то - не папка, выходим
 	if (isAnythingExistsByPath(destinationDirectoryPath) and not isDirectory(destinationDirectoryPath)) {

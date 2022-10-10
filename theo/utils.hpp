@@ -90,6 +90,13 @@ bool isValidRegex(string regularExpression) noexcept;
 // Возвращает строку, содержащую путь к текущец директории (откуда вызвана программа, исполняемый файл)
 string getWorkingDirectoryPath() noexcept;
 
+/* Обрабатывает путь к итоговому файлу или папке, указанный пользователем. Исходя из значения параметра
+ * needMerge решает, требуется ли создавать итоговый файл, или надо просто проверить итоговую директорию.
+ * Если пользователь не указал путь, то устанавливается значение пути на дефолтный по указателю:
+ * если needMerge = false, то путь по умолчанию - рабочая директория, если needMerge = true, то путь
+ * к итоговому файлу передаётся в последнем аргументе, так как он уникален для каждой команды. */
+void processDestinationPath(const char** destinationPathPtr, bool needMerge, FILE** resultFile, const char* defaultResultMergedFilePath) noexcept;
+
 /* Проверяет директорию, указанную пользователем как директорию вывода, если есть какая-то ошибка
  * (например, на месте директории с таким же именем уже присутствует файл)- завершает работу программы */
 void checkDestinationDirectory(const char* destinationDirectoryPath) noexcept;

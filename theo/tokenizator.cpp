@@ -54,20 +54,7 @@ int tokenize(int argc, const char** argv) {
 	sourcefiles_info sourceFilesPaths = getSourceFilesFromUserInput(remainingArgumentsCount, argv, checkSourceDirectoriesRecursive);
 
 	FILE* resultFile = NULL;
-
-	// Проверяем, всё ли нормально с итоговой директорией (или итоговым файлом)
-	if (needMerge) {
-		if (not destinationPath) destinationPath = "tokenized_merged.txt";
-		if (isAnythingExistsByPath(destinationPath)) {
-			cout << "Error: cannot create result file, something exist on path [" << destinationPath << ']' << endl;
-			exit(1);
-		}
-		resultFile = fopen(destinationPath, "wb+");
-	}
-	else {
-		if (not destinationPath) destinationPath = ".";
-		checkDestinationDirectory(destinationPath);
-	}
+	processDestinationPath(&destinationPath, needMerge, &resultFile, "tokenized_merged.txt");
 
 	if (string(resultStringPart) == "first") tokenizerParameters.onlyFirstPart = true;
 	else if (string(resultStringPart) == "last") tokenizerParameters.onlyLastPart = true;
