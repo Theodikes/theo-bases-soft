@@ -25,7 +25,7 @@ public:
     * оперативная память, программа начинается пользоваться этим хешсетом).
     * Доступ осуществляется через указатель, поскольку иначе программа не запускается, так как
     * объекты BerkeleyDB не должны быть в глобальной области видимости. */
-    db_hashset* stringHashes;
+    db_hashset* stringHashes = NULL;
     // Сохраняет информацию информацию о директории, где будут храниться временные файлы базы
     void init(string destinationUserFilePath);
     /* Создает файл базы данных в той же директории, в которой создается пользовательский 
@@ -54,16 +54,22 @@ static const char* const usages[] = {
 
 int deduplicate(int argc, const char** argv) {
     // Путь к итоговому файлу, куда будут записаны строки без дубликатов.
-    const char* destinationFilePath = NULL;
+    const char* destinationPath = NULL;
+    // Надо ли объединять все итоговые файлы в один и удалять общие дубликаты в разных файлах
+    bool needMerge = false; 
+    // Нужно ли проверить поданные пользователем директории рекурсивно
+    bool checkSourceDirectoriesRecursive = false; 
 	size_t	linesInOneFile = 0;
 
 	struct argparse_option options[] = {
 		OPT_HELP(),
         OPT_GROUP("Basic options"),
         OPT_INTEGER('m', "memory", &memoryUsageMaxPercent, "Maximum percentage of RAM usage. Only number (whout percent symbol).\n\t\t\t      After reaching limit, deduplication continues on disk (default - 90%)"),
-		OPT_GROUP("File options"),
-		OPT_STRING('d', "destination", &destinationFilePath, "Path to result file without duplicates (default: '{your_file_name}_dedup.txt'"),
-        OPT_GROUP("    Unmarked (positional) argument are considered as path to file that need to be deduplicated. "),
+        OPT_GROUP("File options"),
+        OPT_BOOLEAN(0, "merge", &needMerge, "remove duplicates from all lines of input files together and put result to one file"),
+        OPT_STRING('d', "destination", &destinationPath, "absolute or relative path to result folder(default: current directory)\n\t\t\t      or file, if merge parameter is specified (default: dedup_merged.txt)"),
+        OPT_BOOLEAN('r', "recursive", &checkSourceDirectoriesRecursive, "check source directories recursive (default - false)"),
+        OPT_GROUP("All unmarked (positional) arguments are considered paths to files and folders with bases that need to be deduplicated.\nExample command: 'theo d -d result base1.txt base2.txt'. More: github.com/Theodikes/theo-bases-soft"),
 		OPT_END(),
 	};
 	struct argparse argparse;
@@ -74,48 +80,58 @@ int deduplicate(int argc, const char** argv) {
         return -1;
     }
 
-    const char* inputFilePath = argv[0];
-
+    // Засекаем время выполнения программы
     chrono::steady_clock::time_point begin = chrono::steady_clock::now();
+
+    // Получаем список всех валидных файлов, которые надо дедуплицировать
+    sourcefiles_info sourceFilesPaths = getSourceFilesFromUserInput(remainingArgumentsCount, argv, checkSourceDirectoriesRecursive);
+
+    FILE* resultFile = NULL; 
+    processDestinationPath(&destinationPath, needMerge, &resultFile, "dedup_merged.txt");
+
     if (memoryUsageMaxPercent < 1 or memoryUsageMaxPercent > 100) {
         cout << "Invalid '--memory' parameter value, it must be lower than 100 and higher than 0" << endl;
         return ERROR_INVALID_PARAMETER;
     }
 
-    FILE* inputFile = fopen(inputFilePath, "rb");
-    if (inputFile == NULL) {
-        cout << "Invalid path to source file: [" << inputFilePath << "]" << endl;
-        return ERROR_OPEN_FAILED;
+    /* Инициализируем базу данных в итоговой директории, указанной пользователем.
+    * Если пользователь указал итоговый файл, инициализируем в той же директории, где он находится */
+    hashesDB.init(needMerge ? getDirectoryFromFilePath(destinationPath) : destinationPath);
+
+    for (const string& inputFilePath : sourceFilesPaths) {
+        FILE* inputBaseFile = fopen(inputFilePath.c_str(), "rb");
+        if (inputBaseFile == NULL) {
+            cout << "File is skipped. Cannot open [" << inputFilePath << "] because of invalid path or due to security policy reasons." << endl;
+            continue;
+        }
+
+        ull inputFileSizeInBytes = getFileSize(inputFilePath.c_str());
+        if (getAvailableMemoryInBytes() < static_cast<ull>(inputFileSizeInBytes)) {
+            cout << "Warning: there may not be enough RAM to remove duplicates (if there are few duplicates in specified file). After starting disk space usage, the execution speed will slow down a lot.\n";
+        }
+
+        /* Если мы не складываем всё в один файл, то каждую итерацию цикла создаём под каждый входной файл
+        * свой итоговый файл, в котором будут находиться нормализованные строки из входного.
+        * Кроме того, очищаем хранилище хешей строк с предыдущего файла, поскольку нам нужно искать
+        * дубликаты в каждом входном файле отдельно, а не во всех сразу.*/
+        if (!needMerge) {
+            // Очищаем хештаблицы строк прошлых файлов, если надо
+            if(not stringHashes.empty()) stringHashes.clear();
+            if (hashesDB.isDBUsed) hashesDB.clearDBs();
+
+            resultFile = getResultFilePtr(destinationPath, inputFilePath, "_dedup");
+            if (resultFile == NULL) {
+                cout << "Error: cannot open result file [" << joinPaths(destinationPath, inputFilePath) << "] in write mode" << endl;
+                continue;
+            }
+        }
+
+        processFileByChunks(inputBaseFile, resultFile, deduplicateBufferLineByLine);
+        // Закрываем входной файл
+        fclose(inputBaseFile);
     }
 
-    long long inputFileSizeInBytes = getFileSize(inputFilePath);
-    if (inputFileSizeInBytes == -1) {
-        cout << "Error: cannot get access to file: [" << inputFilePath << "]" << endl;
-        return ERROR_ACCESS_DENIED;
-    }
-    if (inputFileSizeInBytes == 0) {
-        cout << "Error: cannot deduplicate, input file [" << inputFilePath << "] is empty." << endl;
-        return 1;
-    }
-
-    if (destinationFilePath == NULL) destinationFilePath = getDeduplicatedResultFilePath(inputFilePath);
-
-    hashesDB.init(destinationFilePath);
-
-    FILE* resultFile = fopen(destinationFilePath, "wb+");
-    if (resultFile == NULL) {
-        cout << "Error: cannot open result file [" << destinationFilePath << " in write mode" << endl;
-        exit(ERROR_OPEN_FAILED);
-    }
-
-    if (getAvailableMemoryInBytes() < static_cast<ull>(inputFileSizeInBytes)) {
-        cout << "Warning: there may not be enough RAM to remove duplicates (if there are few duplicates in specified file). After starting disk space usage, the execution speed will slow down a lot.\n";
-    }
-    
-
-    processFileByChunks(inputFile, resultFile, deduplicateBufferLineByLine);
-    fclose(resultFile);
-    if (hashesDB.isDBUsed) hashesDB.clearDBs();
+    _fcloseall();
 
     chrono::steady_clock::time_point end = chrono::steady_clock::now();
     cout << "\nFile deduplicated successfully! Execution time: " << chrono::duration_cast<std::chrono::seconds>(end - begin).count() << "[s]\n" << endl;
@@ -209,6 +225,14 @@ void HashesDB::createDB(void) {
     stringHashes = new db_hashset(db, penv);
 }
 void HashesDB::clearDBs(void) {
+    /* Устанавливаем isDBUseed на false, поскольку запуск базы данных может не требоваться
+    * для обработки следующего файла, который может быть меньшего размера */
+    isDBUsed = false;
+
+    // Удаляем саму базу
+    delete this->stringHashes;
+    this->stringHashes = NULL;
+
     // Закрываем все окружения баз и все базы
     close_all_db_envs();
     close_all_dbs();
