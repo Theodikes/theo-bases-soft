@@ -183,7 +183,7 @@ void processFileByChunks(FILE* inputFile, FILE* resultFile, size_t processChunkB
 }
 
 void processAllSourceFiles(sourcefiles_info sourceFilesPaths, bool needMerge, FILE* resultFile, string destinationDirectoryPath, string resultFilesSuffix, size_t processChunkBuffer(char* inputBuffer, size_t inputBufferLength, char* resultBuffer)) {
-	for (string sourceFilePath : sourceFilesPaths) {
+	for (string& sourceFilePath : sourceFilesPaths) {
 
 		FILE* inputBaseFilePointer = fopen(sourceFilePath.c_str(), "rb");
 		if (inputBaseFilePointer == NULL) {
