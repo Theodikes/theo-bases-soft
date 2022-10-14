@@ -117,7 +117,8 @@ int deduplicate(int argc, const char** argv) {
             if(not stringHashes.empty()) stringHashes.clear();
             if (hashesDB.isDBUsed) hashesDB.clearDBs();
 
-            resultFile = getResultFilePtr(destinationPathW, inputFilePath, L"_dedup");
+            fclose(resultFile);
+            resultFile = getResultFilePtr(destinationPathW, inputFilePath, L"dedup");
             if (resultFile == NULL) {
                 wcout << "Error: cannot open result file [" << joinPaths(destinationPathW, inputFilePath) << "] in write mode" << endl;
                 continue;
