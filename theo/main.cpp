@@ -44,12 +44,13 @@ int main(int argc, const char** argv) {
 
 static DWORD addExecutablePathToWindowsRegisrty() {
     wstring programName = L"THEO_SOFT"; // Имя программы в user env, чтобы искать по нему при повторных запусках
+    // Папка, в которой располагается исполняемый файл программы, на которую будет ссылаться Path
     wstring pathToDirectoryWithExecutable = getWorkingDirectoryPath();
     HKEY registryHkey; // Ключ регистра для доступа к редактированию и чтению user env, находящемуся в Windows Registry
     DWORD ALREADY_DONE = 14; // Код возврата на тот случай, если исполняемый файл софта уже добавлен в PATH
 
     // Проверяем, есть ли доступ к редактированию и чтению PATH из реестра, получаем ключ доступа registryKey
-    if (RegOpenKeyEx(HKEY_CURRENT_USER, "Environment", 0, KEY_ALL_ACCESS, &registryHkey) != ERROR_SUCCESS) {
+    if (RegOpenKeyExW(HKEY_CURRENT_USER, L"Environment", 0, KEY_ALL_ACCESS, &registryHkey) != ERROR_SUCCESS) {
         // Если не получилось - показываем пользователю, что у софта недостаточно прав для работы с реестром
         cout << "Cannot get access to Windows Registry" << endl;
         return ERROR_ACCESS_DENIED;
@@ -60,18 +61,20 @@ static DWORD addExecutablePathToWindowsRegisrty() {
 
     // Получаем текущее значение пользовательской переменной PATH (одну строку со всеми путями) из регистра
     DWORD environmentPATHVariableRealLength = _MAX_ENV;
-    BYTE bufferForPATHValue[_MAX_ENV + 1];
-    if (RegQueryValueEx(registryHkey, "Path", nullptr, nullptr, bufferForPATHValue, &environmentPATHVariableRealLength) != ERROR_SUCCESS) {
+    wchar_t bufferForPATHValue[_MAX_ENV + 1];
+    if (RegQueryValueExW(registryHkey, L"Path", nullptr, nullptr, (LPBYTE) bufferForPATHValue, &environmentPATHVariableRealLength) != ERROR_SUCCESS) {
         cout << "Cannot get current value of PATH variable in user environment" << endl;
         return ERROR_ACCESS_DENIED;
     }
-    bufferForPATHValue[environmentPATHVariableRealLength] = '\0';
-
+    /* Ставим указатель на конец строки, поделив длину на размер wchar_t, поскольку длина указывается
+    * в байтах, а в каждом символе wchar 2 байта по уомлчанию */
+    bufferForPATHValue[environmentPATHVariableRealLength / sizeof(wchar_t)] = '\0';   
+    
     // Полный PATH пользователя в environment, добавляем в него текущую директорию
-    wstring pathVariableWithTheoDirectory = toWstring(reinterpret_cast<const char*>(bufferForPATHValue)) + L";" + pathToDirectoryWithExecutable;
+    wstring pathVariableWithTheoDirectory = bufferForPATHValue + wstring(L";") + pathToDirectoryWithExecutable;
 
     // Пытаемся установить текущую директорию, в которой находится исполняемый файл софта, в Windows PATH
-    if (RegSetValueExW(registryHkey, programName.c_str(), 0, REG_SZ, (BYTE*)pathToDirectoryWithExecutable.c_str(), static_cast<DWORD>(pathToDirectoryWithExecutable.length() * 2)) != ERROR_SUCCESS or RegSetValueExW(registryHkey, L"Path", 0, REG_SZ,(BYTE*) pathVariableWithTheoDirectory.c_str(), static_cast<DWORD>(pathVariableWithTheoDirectory.length() * 2)) != ERROR_SUCCESS) {
+    if (RegSetValueExW(registryHkey, programName.c_str(), 0, REG_SZ, (LPBYTE) pathToDirectoryWithExecutable.c_str(), static_cast<DWORD>(pathToDirectoryWithExecutable.length() * sizeof(wchar_t))) != ERROR_SUCCESS or RegSetValueExW(registryHkey, L"Path", 0, REG_SZ, (LPBYTE)pathVariableWithTheoDirectory.c_str(), static_cast<DWORD>(pathVariableWithTheoDirectory.length() * sizeof(wchar_t))) != ERROR_SUCCESS) {
         cout << "Cannot add program to PATH (to Windows regisrty)" << endl;
         return ERROR_ACCESS_DENIED;
     }
