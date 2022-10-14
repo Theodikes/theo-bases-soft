@@ -216,7 +216,7 @@ void processDestinationPath(const char** destinationPathPtr, bool needMerge, FIL
 		* был доступен вне функции */
 		*resultFile = fopen(*destinationPathPtr, "wb+");
 		if (*resultFile == NULL) {
-			cout << "Error: cannot open result file [" << *destinationPathPtr << " in write mode" << endl;
+			cout << "Error: cannot open result file [" << *destinationPathPtr << "] in write mode" << endl;
 			exit(ERROR_OPEN_FAILED);
 		}
 	}
