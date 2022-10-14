@@ -6,7 +6,7 @@
 static size_t readBufferByLinesUntilCount(char* buffer, size_t buflen, size_t startBufIndex, size_t* remainingStrings);
 
 // Создаёт следующий по счёту файл с N-ным количеством строк, открывает в режиме записи и возвращает указатель на него
-static FILE* getNextSplittedFilePtr(const char* destinationDirectory, size_t linesInOneFile, size_t currentFileNumber, const char* inputFilePath);
+static FILE* getNextSplittedFilePtr(wstring destinationDirectory, size_t linesInOneFile, size_t currentFileNumber, wstring inputFilePath);
 
 // Опции для ввода аргументов вызова программы из cmd, показыаемые пользователю при использовании флага --help или -h
 static const char* const usages[] = {
@@ -41,7 +41,7 @@ int split(int argc, const char** argv) {
 	}
 
 	// Проверяем итоговую директорию, есть ли к ней доступ и существует ли она
-	checkDestinationDirectory(destinationDirectoryPath);
+	checkDestinationDirectory(toWstring(destinationDirectoryPath));
 
 	const char* inputFilePath = argv[0];
 	FILE* inputFilePtr = fopen(inputFilePath, "rb");
@@ -55,7 +55,7 @@ int split(int argc, const char** argv) {
 	/* Вычисляем размер временного буфера для хранения и обработки байтовых данных с файлов. 
 	* Обычно буфер должен иметь оптимальный размер для работы с диском (64 мегабайта, степень двойки в байтах),
 	* однако, если сам изначальный файл для разбиения меньше, используется его размер, чтобы не занимать лишнюю оперативку */
-	ull fileSize = getFileSize(inputFilePath);
+	ull fileSize = getFileSize(toWstring(inputFilePath));
 	size_t countBytesToReadInOneIteration = min(OPTIMAL_DISK_CHUNK_SIZE, fileSize);
 
 	/* Буфер, в который будет считываться информация с диска(со входящего файла) и в котором будут считаться строки.
@@ -74,7 +74,7 @@ int split(int argc, const char** argv) {
 	/* Текущий номер файла, в который записываются строки из изначального. Имя каждого нового файла - 
 	* имя изначального файла без расширения + '_[порядковый номер файла].txt' в конце */
 	size_t currentFileNumber = 1;
-	FILE* currentSplittedFilePtr = getNextSplittedFilePtr(destinationDirectoryPath, linesInOneFile, currentFileNumber, inputFilePath);
+	FILE* currentSplittedFilePtr = getNextSplittedFilePtr(toWstring(destinationDirectoryPath), linesInOneFile, currentFileNumber, toWstring(inputFilePath));
 
 	while (!feof(inputFilePtr)) {
 		size_t bytesReaded = fread(buffer, sizeof(char), countBytesToReadInOneIteration, inputFilePtr);
@@ -98,7 +98,7 @@ int split(int argc, const char** argv) {
 				remainingStrings = linesInOneFile;
 				fclose(currentSplittedFilePtr);
 				// Если конец входного файла, новый файл для строк создавать не надо, так как он будет пустым
-				if(!feof(inputFilePtr) or startPos < bytesReaded) currentSplittedFilePtr = getNextSplittedFilePtr(destinationDirectoryPath, linesInOneFile, ++currentFileNumber, inputFilePath);
+				if(!feof(inputFilePtr) or startPos < bytesReaded) currentSplittedFilePtr = getNextSplittedFilePtr(toWstring(destinationDirectoryPath), linesInOneFile, ++currentFileNumber, toWstring(inputFilePath));
 			}
 		}
 		// Если прочитали весь файл, который мы делим, закрываем текущий файл для записи (он будет неполным и последним)
@@ -116,8 +116,8 @@ static size_t readBufferByLinesUntilCount(char* buffer, size_t buflen, size_t st
 	return buflen;
 }
 
-static FILE* getNextSplittedFilePtr(const char* destinationDirectory, size_t linesInOneFile, size_t currentFileNumber, const char* inputFilePath) {
-	string resultFilenameWithExtension = getFileNameWithoutExtension(inputFilePath) + "_" + to_string(linesInOneFile) + +"_" + to_string(currentFileNumber) + ".txt";
-	string pathToSplittedFile = joinPaths(destinationDirectory, resultFilenameWithExtension);
-	return fopen(pathToSplittedFile.c_str(), "wb+");
+static FILE* getNextSplittedFilePtr(wstring destinationDirectory, size_t linesInOneFile, size_t currentFileNumber, wstring inputFilePath) {
+	wstring resultFilenameWithExtension = getFileNameWithoutExtension(inputFilePath) + L"_" + to_wstring(linesInOneFile) + L"_" + to_wstring(currentFileNumber) + L".txt";
+	wstring pathToSplittedFile = joinPaths(destinationDirectory, resultFilenameWithExtension);
+	return _wfopen(pathToSplittedFile.c_str(), L"wb+");
 }

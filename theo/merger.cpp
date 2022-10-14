@@ -46,10 +46,10 @@ int merge(int argc, const char** argv) {
 		exit(1);
 	}
 
-	for (string sourceFilePath : sourceFilesPaths) {
-		FILE* sourceFilePtr = fopen(sourceFilePath.c_str(), "rb");
+	for (const wstring& sourceFilePath : sourceFilesPaths) {
+		FILE* sourceFilePtr = _wfopen(sourceFilePath.c_str(), L"rb");
 		if (sourceFilePtr == NULL) {
-			cout << "File is skipped. Cannot open [" << sourceFilePath << "] because of invalid path or due to security policy reasons." << endl;
+			wcout << "File is skipped. Cannot open [" << sourceFilePath << "] because of invalid path or due to security policy reasons." << endl;
 			continue;
 		}
 

@@ -63,7 +63,7 @@ int tokenize(int argc, const char** argv) {
 		exit(1);
 	}
 
-	processAllSourceFiles(sourceFilesPaths, needMerge, resultFile, destinationPath, "tokenized", tokenizeBufferLineByLine);
+	processAllSourceFiles(sourceFilesPaths, needMerge, resultFile, toWstring(destinationPath), L"tokenized", tokenizeBufferLineByLine);
 
 	chrono::steady_clock::time_point end = chrono::steady_clock::now();
 	cout << endl << (sourceFilesPaths.size() == 1 ? "File" : "All files") << " tokenized successfully! Execution time: " << chrono::duration_cast<std::chrono::seconds>(end - begin).count() << "[s]\n" << endl;

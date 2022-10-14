@@ -1,37 +1,30 @@
 ﻿#include "utils.hpp"
 
-bool startsWith(const char* str, const char* prefix) noexcept
-{
-	size_t lenpre = strlen(prefix),
-		lenstr = strlen(str);
-	return lenstr < lenpre ? false : memcmp(prefix, str, lenpre) == 0;
+wstring toWstring(string s) noexcept {
+	std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
+	return converter.from_bytes(s);
 }
 
-bool endsWith(const char* str, const char* suffix) noexcept
-{
-	if (!str or !suffix) return false;
-	size_t lenstr = strlen(str);
-	size_t lensuffix = strlen(suffix);
-	if (lensuffix > lenstr) return false;
-
-	return strncmp(str + lenstr - lensuffix, suffix, lensuffix) == 0;
+string fromWstring(wstring s) noexcept {
+	std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
+	return converter.to_bytes(s);
 }
 
-string joinPaths(string dirPath, string filePath) noexcept {
-	return (fs::path(dirPath) / fs::path(filePath)).string();
+wstring joinPaths(wstring dirPath, wstring filePath) noexcept {
+	return (fs::path(dirPath) / fs::path(filePath)).wstring();
 }
 
 
-bool processSourceFileOrDirectory(sourcefiles_info& textFilesPaths, string path, bool recursive)
+bool processSourceFileOrDirectory(sourcefiles_info& textFilesPaths, wstring path, bool recursive)
 {
 	if (!isAnythingExistsByPath(path)) {
-		cout << "File doesn`t exist: [" << path <<  "]" << endl;
+		wcout << "File doesn`t exist: [" << path <<  "]" << endl;
 		return false;
 	}
 	if (!isDirectory(path)) return addFileToSourceList(textFilesPaths, path);
 
 	for (const auto& entry : fs::directory_iterator(path)) {
-		string subpath = entry.path().string();
+		wstring subpath = entry.path().wstring();
 		if (isDirectory(subpath) and recursive) processSourceFileOrDirectory(textFilesPaths, subpath, recursive);
 		else addFileToSourceList(textFilesPaths, subpath);
 	}
@@ -39,8 +32,8 @@ bool processSourceFileOrDirectory(sourcefiles_info& textFilesPaths, string path,
 	return true;
 }
 
-bool addFileToSourceList(sourcefiles_info& sourceTextFilesPaths, string filePath) noexcept {
-	if (!(endsWith(filePath.c_str(), ".txt"))) return false;
+bool addFileToSourceList(sourcefiles_info& sourceTextFilesPaths, wstring filePath) noexcept {
+	if (not filePath.ends_with(L".txt")) return false;
 	sourceTextFilesPaths.insert(filePath);
 	return true;
 }
@@ -51,7 +44,7 @@ sourcefiles_info getSourceFilesFromUserInput(size_t sourcePathsCount, const char
 
 	// Обрабатываем все пути, указанные пользователем, получаем оттуда все txt-файлы и сохраняем их в sourceFilesPaths
 	for (size_t i = 0; i < sourcePathsCount; i++) {
-		processSourceFileOrDirectory(sourceFilesPaths, userSourcePaths[i], checkDirectoriesRecursive);
+		processSourceFileOrDirectory(sourceFilesPaths, toWstring(userSourcePaths[i]), checkDirectoriesRecursive);
 	}
 
 	// Если ни одного валидного пути не оказалось, выходим
@@ -63,9 +56,9 @@ sourcefiles_info getSourceFilesFromUserInput(size_t sourcePathsCount, const char
 	return sourceFilesPaths;
 }
 
-string getFileNameWithoutExtension(string pathToFile) noexcept {
-	if (not fs::exists(pathToFile)) return "";
-	return filesystem::path(pathToFile).stem().string();
+wstring getFileNameWithoutExtension(wstring pathToFile) noexcept {
+	if (not fs::exists(pathToFile)) return L"";
+	return filesystem::path(pathToFile).stem().wstring();
 }
 
 
@@ -75,9 +68,9 @@ size_t getLinesCountInText(char* bytes) noexcept {
 	return stringsCount;
 }
 
-long long getFileSize(const char* pathToFile) {
+long long getFileSize(wstring pathToFile) {
 	WIN32_FILE_ATTRIBUTE_DATA fileData;
-	if (GetFileAttributesEx(pathToFile, GetFileExInfoStandard, &fileData))
+	if (GetFileAttributesExW(pathToFile.c_str(), GetFileExInfoStandard, &fileData))
 		return (static_cast<ull>(fileData.nFileSizeHigh) << sizeof(fileData.nFileSizeLow) * 8) | fileData.nFileSizeLow;
 	return -1;
 }
@@ -112,12 +105,12 @@ size_t getMemoryUsagePercent(void) noexcept {
 	return static_cast<size_t>((totalRAMInBytes - getAvailableMemoryInBytes()) / (long double) totalRAMInBytes * 100);
 }
 
-bool isAnythingExistsByPath(string path) noexcept {
-	return GetFileAttributes(path.c_str()) != INVALID_FILE_ATTRIBUTES;
+bool isAnythingExistsByPath(wstring path) noexcept {
+	return GetFileAttributesW(path.c_str()) != INVALID_FILE_ATTRIBUTES;
 }
 
-bool isDirectory(string path) noexcept {
-	return GetFileAttributes(path.c_str()) & FILE_ATTRIBUTE_DIRECTORY;
+bool isDirectory(wstring path) noexcept {
+	return fs::is_directory(path);
 }
 
 bool isValidRegex(string regularExpression) noexcept {
@@ -130,13 +123,13 @@ bool isValidRegex(string regularExpression) noexcept {
 	return true;
 }
 
-string getWorkingDirectoryPath() noexcept {
-	return fs::current_path().string();
+wstring getWorkingDirectoryPath() noexcept {
+	return fs::current_path().wstring();
 }
 
-string getDirectoryFromFilePath(string filePath) noexcept {
-	if (not fs::exists(filePath)) return "";
-	return fs::absolute(filePath).parent_path().string();
+wstring getDirectoryFromFilePath(wstring filePath) noexcept {
+	if (not fs::exists(filePath)) return L"";
+	return fs::absolute(filePath).parent_path().wstring();
 }
 
 void processFileByChunks(FILE* inputFile, FILE* resultFile, size_t processChunkBuffer(char*, size_t, char*)) {
@@ -182,12 +175,12 @@ void processFileByChunks(FILE* inputFile, FILE* resultFile, size_t processChunkB
 	delete[] resultBuffer;
 }
 
-void processAllSourceFiles(sourcefiles_info sourceFilesPaths, bool needMerge, FILE* resultFile, string destinationDirectoryPath, string resultFilesSuffix, size_t processChunkBuffer(char* inputBuffer, size_t inputBufferLength, char* resultBuffer)) {
-	for (string& sourceFilePath : sourceFilesPaths) {
+void processAllSourceFiles(sourcefiles_info sourceFilesPaths, bool needMerge, FILE* resultFile, wstring destinationDirectoryPath, wstring resultFilesSuffix, size_t processChunkBuffer(char* inputBuffer, size_t inputBufferLength, char* resultBuffer)) {
+	for (wstring& sourceFilePath : sourceFilesPaths) {
 
-		FILE* inputBaseFilePointer = fopen(sourceFilePath.c_str(), "rb");
+		FILE* inputBaseFilePointer = _wfopen(sourceFilePath.c_str(), L"rb");
 		if (inputBaseFilePointer == NULL) {
-			cout << "File is skipped. Cannot open [" << sourceFilePath << "] because of invalid path or due to security policy reasons." << endl;
+			wcout << "File is skipped. Cannot open [" << sourceFilePath << "] because of invalid path or due to security policy reasons." << endl;
 			continue;
 		}
 
@@ -196,7 +189,7 @@ void processAllSourceFiles(sourcefiles_info sourceFilesPaths, bool needMerge, FI
 		if (!needMerge) {
 			resultFile = getResultFilePtr(destinationDirectoryPath, sourceFilePath, resultFilesSuffix);
 			if (resultFile == NULL) {
-				cout << "Error: cannot open result file [" << joinPaths(destinationDirectoryPath, sourceFilePath) << "] in write mode" << endl;
+				wcout << "Error: cannot open result file [" << joinPaths(destinationDirectoryPath, sourceFilePath) << "] in write mode" << endl;
 				continue;
 			}
 		}
@@ -214,7 +207,7 @@ void processDestinationPath(const char** destinationPathPtr, bool needMerge, FIL
 	// Проверяем, всё ли нормально с итоговой директорией (или итоговым файлом)
 	if (needMerge) {
 		if (not *destinationPathPtr) *destinationPathPtr = defaultResultMergedFilePath;
-		if (isAnythingExistsByPath(*destinationPathPtr)) {
+		if (isAnythingExistsByPath(toWstring(*destinationPathPtr))) {
 			cout << "Error: cannot create result file, something exist on path [" << *destinationPathPtr << ']' << endl;
 			exit(1);
 		}
@@ -231,14 +224,14 @@ void processDestinationPath(const char** destinationPathPtr, bool needMerge, FIL
 		// Если пользователь не указал путь к итоговой директории, путь по умолчанию - рабочая директория
 		if (not *destinationPathPtr) *destinationPathPtr = ".";
 		// Проверяем директорию на валидность и есть ли к ней доступ
-		checkDestinationDirectory(*destinationPathPtr);
+		checkDestinationDirectory(toWstring(*destinationPathPtr));
 	}
 }
 
-void checkDestinationDirectory(const char* destinationDirectoryPath) noexcept {
+void checkDestinationDirectory(wstring destinationDirectoryPath) noexcept {
 	// Если на указанном пользователем пути к итоговой директории что-то есть, и это что-то - не папка, выходим
 	if (isAnythingExistsByPath(destinationDirectoryPath) and not isDirectory(destinationDirectoryPath)) {
-		cout << "Error: something exists by path [" << destinationDirectoryPath << "] and this isn`t directory" << endl;
+		wcout << "Error: something exists by path [" << destinationDirectoryPath << "] and this isn`t directory" << endl;
 		exit(1);
 	}
 
@@ -246,12 +239,12 @@ void checkDestinationDirectory(const char* destinationDirectoryPath) noexcept {
 	if (not isAnythingExistsByPath(destinationDirectoryPath) and not createDirectoryUserDialog(destinationDirectoryPath)) exit(1);
 }
 
-bool createDirectoryUserDialog(string creatingDirectoryPath) noexcept {
+bool createDirectoryUserDialog(wstring creatingDirectoryPath) noexcept {
 	char answer;
 	cout << "Destination directory doesn`t exist, create it? (y/n): ";
 	cin >> answer;
 	if (answer != 'y') return false;
-	bool ret = CreateDirectory(creatingDirectoryPath.c_str(), NULL);
+	bool ret = fs::create_directory(creatingDirectoryPath);
 	if (!ret) {
 		cout << "Error: cannot create directory by destination path" << endl;
 		return false;
@@ -260,23 +253,23 @@ bool createDirectoryUserDialog(string creatingDirectoryPath) noexcept {
 	return true;
 }
 
-FILE* getResultFilePtr(string pathToResultFolder, string pathToSourceFile, string fileSuffixName) {
+FILE* getResultFilePtr(wstring pathToResultFolder, wstring pathToSourceFile, wstring fileSuffixName) {
 
 	/* Поскольку могут быть файлы с одинаковыми названиями из разных директорий, выбираем имя итогового,
 	нормализованного файла, пока не найдём незанятое (допустим, если нормализуется два файла из разных директорий с
 	совпадающими именами, предположим, base1/test.txt и base2/test.txt, первый будет положен в итоговую директорию
 	как test_normalized_1.txt, а второй как test_normalized_2.txt)*/
-	string resultFilePath;
+	wstring resultFilePath;
 	size_t i = 1;
 	do {
-		string resultFileName = getFileNameWithoutExtension(pathToSourceFile);
-		resultFilePath = joinPaths(pathToResultFolder, resultFileName + '_' + fileSuffixName + '_' + to_string(i++) + ".txt");
+		wstring resultFileName = getFileNameWithoutExtension(pathToSourceFile);
+		resultFilePath = joinPaths(pathToResultFolder, resultFileName + L'_' + fileSuffixName + L'_' + to_wstring(i++) + L".txt");
 	} while (isAnythingExistsByPath(resultFilePath));
 
 	// Записывать будем в открытый через fopen файл и в байтовом режиме для большей скорости
-	FILE* resultFilePtr = fopen(resultFilePath.c_str(), "wb+");
+	FILE* resultFilePtr = _wfopen(resultFilePath.c_str(), L"wb+");
 	if (resultFilePtr == NULL) {
-		cout << "Cannot create file for " << fileSuffixName << " base by path : [" << resultFilePath << "] " << endl;
+		wcout << "Cannot create file for " << fileSuffixName << " base by path : [" << resultFilePath << "] " << endl;
 	}
 	return resultFilePtr;
 }

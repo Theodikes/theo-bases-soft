@@ -41,10 +41,10 @@ int count(int argc, const char** argv) {
 	unsigned long long stringsCount = 0;
 
 	chrono::steady_clock::time_point begin = chrono::steady_clock::now();
-	for (string sourceFilePath : sourceFilesPaths) {
-		FILE* sourceFilePtr = fopen(sourceFilePath.c_str(), "rb");
+	for (const wstring& sourceFilePath : sourceFilesPaths) {
+		FILE* sourceFilePtr = _wfopen(sourceFilePath.c_str(), L"rb");
 		if (sourceFilePtr == NULL) {
-			cout << "File is skipped. Cannot open [" << sourceFilePath << "] because of invalid path or due to security policy reasons." << endl;
+			wcout << "File is skipped. Cannot open [" << sourceFilePath << "] because of invalid path or due to security policy reasons." << endl;
 			continue;
 		}
 

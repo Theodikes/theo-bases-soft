@@ -43,8 +43,8 @@ int main(int argc, const char** argv) {
 }
 
 static DWORD addExecutablePathToWindowsRegisrty() {
-    const char* programName = "THEO_SOFT"; // Имя программы в user env, чтобы искать по нему при повторных запусках
-    string pathToDirectoryWithExecutable = getWorkingDirectoryPath();
+    wstring programName = L"THEO_SOFT"; // Имя программы в user env, чтобы искать по нему при повторных запусках
+    wstring pathToDirectoryWithExecutable = getWorkingDirectoryPath();
     HKEY registryHkey; // Ключ регистра для доступа к редактированию и чтению user env, находящемуся в Windows Registry
     DWORD ALREADY_DONE = 14; // Код возврата на тот случай, если исполняемый файл софта уже добавлен в PATH
 
@@ -56,7 +56,7 @@ static DWORD addExecutablePathToWindowsRegisrty() {
     }
 
     // Проверяем, может, софт уже был ранее добавлен в PATH, если да, больше ничего делать не надо, выходим из функции
-    if (RegQueryValueEx(registryHkey, programName, nullptr, nullptr, nullptr, nullptr) == ERROR_SUCCESS) return ALREADY_DONE;
+    if (RegQueryValueExW(registryHkey, programName.c_str(), nullptr, nullptr, nullptr, nullptr) == ERROR_SUCCESS) return ALREADY_DONE;
 
     // Получаем текущее значение пользовательской переменной PATH (одну строку со всеми путями) из регистра
     DWORD environmentPATHVariableRealLength = _MAX_ENV;
@@ -68,10 +68,10 @@ static DWORD addExecutablePathToWindowsRegisrty() {
     bufferForPATHValue[environmentPATHVariableRealLength] = '\0';
 
     // Полный PATH пользователя в environment, добавляем в него текущую директорию
-    string pathVariableWithTheoDirectory = string(reinterpret_cast<const char*>(bufferForPATHValue)) + ";" + pathToDirectoryWithExecutable;
+    wstring pathVariableWithTheoDirectory = toWstring(reinterpret_cast<const char*>(bufferForPATHValue)) + L";" + pathToDirectoryWithExecutable;
 
     // Пытаемся установить текущую директорию, в которой находится исполняемый файл софта, в Windows PATH
-    if (RegSetValueEx(registryHkey, programName, 0, REG_SZ, (BYTE*)pathToDirectoryWithExecutable.c_str(), static_cast<DWORD>(pathToDirectoryWithExecutable.length())) != ERROR_SUCCESS or RegSetValueEx(registryHkey, "Path", 0, REG_SZ, (BYTE*)pathVariableWithTheoDirectory.c_str(), static_cast<DWORD>(pathVariableWithTheoDirectory.length())) != ERROR_SUCCESS) {
+    if (RegSetValueExW(registryHkey, programName.c_str(), 0, REG_SZ, (BYTE*)fromWstring(pathToDirectoryWithExecutable).c_str(), static_cast<DWORD>(pathToDirectoryWithExecutable.length())) != ERROR_SUCCESS or RegSetValueExW(registryHkey, L"Path", 0, REG_SZ, (BYTE*)fromWstring(pathVariableWithTheoDirectory).c_str(), static_cast<DWORD>(pathVariableWithTheoDirectory.length())) != ERROR_SUCCESS) {
         cout << "Cannot add program to PATH (to Windows regisrty)" << endl;
         return ERROR_ACCESS_DENIED;
     }

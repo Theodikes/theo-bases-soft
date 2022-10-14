@@ -187,7 +187,7 @@ int normalize(int argc, const char** argv) {
 	chrono::steady_clock::time_point begin = chrono::steady_clock::now();
 	
 	// Обрабатываем все указанные пользователем файлы с помощью наших функций нормализации и записываем в итоговый файл
-	processAllSourceFiles(sourceFilesPaths, needMerge, resultFile, destinationPath, "normalized", normalizeBufferLineByLine);
+	processAllSourceFiles(sourceFilesPaths, needMerge, resultFile, toWstring(destinationPath), L"normalized", normalizeBufferLineByLine);
 
 	chrono::steady_clock::time_point end = chrono::steady_clock::now();
 	cout << "\nBases normalized successfully! Execution time: " << chrono::duration_cast<std::chrono::seconds>(end - begin).count() << "[s]\n" << endl;

@@ -13,11 +13,11 @@ static int memoryUsageMaxPercent = 90;
 static class HashesDB {
 private:
     // Директория, в которой будет хранится временный файл базы данных и технические файлы
-    string dbParentDirectory;
+    wstring dbParentDirectory;
     // Имя временного файла базы данных, при инициализации будет заменено на полный путь
-    string dbFilePath = "dedup.db";
+    wstring dbFilePath = L"dedup.db";
     // Технические файлы Berkeley DB, создаваемые при инициализации базы, их тоже надо чистить
-    const vector<string> dbTechFiles = { "__db.001", "__db.002", "__db.003" };
+    const vector<wstring> dbTechFiles = { L"__db.001", L"__db.002", L"__db.003" };
 public:
     // Используется ли база данных для хранения хешей или хватает оперативной памяти
     bool isDBUsed = false;
@@ -27,7 +27,7 @@ public:
     * объекты BerkeleyDB не должны быть в глобальной области видимости. */
     db_hashset* stringHashes = NULL;
     // Сохраняет информацию информацию о директории, где будут храниться временные файлы базы
-    void init(string destinationUserFilePath);
+    void init(wstring destinationUserFilePath);
     /* Создает файл базы данных в той же директории, в которой создается пользовательский 
     * итоговый файл с дедуплицированными строками. Инициализирует stringHashes и линкует его к базе */
     void createDB(void);
@@ -42,9 +42,6 @@ static void addStringToDestinationBufferCheckingHash(ull stringHash, char* sourc
 /* Считывает входной буфер посимвольно, хеширует каждую считанную строку, уникальные записывает в итоговый буфер.
 *  Возвращает размер итогового буфера в байтах (чтобы впоследствии записать все данные из него в файл) */
 static size_t deduplicateBufferLineByLine(char* buffer, size_t buflen, char* resultBuffer);
-
-// Проверяет, указан ли пользователем путь к исходному файлу, если нет - создает свой из имени входного файла
-static const char* getDeduplicatedResultFilePath(const char* inputFilePath);
 
 // Опции для ввода аргументов вызова программы из cmd, показыаемые пользователю при использовании флага --help или -h
 static const char* const usages[] = {
@@ -94,14 +91,15 @@ int deduplicate(int argc, const char** argv) {
         return ERROR_INVALID_PARAMETER;
     }
 
+    wstring destinationPathW = toWstring(destinationPath);
     /* Инициализируем базу данных в итоговой директории, указанной пользователем.
     * Если пользователь указал итоговый файл, инициализируем в той же директории, где он находится */
-    hashesDB.init(needMerge ? getDirectoryFromFilePath(destinationPath) : destinationPath);
+    hashesDB.init(needMerge ? getDirectoryFromFilePath(destinationPathW) : destinationPathW);
 
-    for (const string& inputFilePath : sourceFilesPaths) {
-        FILE* inputBaseFile = fopen(inputFilePath.c_str(), "rb");
+    for (const wstring& inputFilePath : sourceFilesPaths) {
+        FILE* inputBaseFile = _wfopen(inputFilePath.c_str(), L"rb");
         if (inputBaseFile == NULL) {
-            cout << "File is skipped. Cannot open [" << inputFilePath << "] because of invalid path or due to security policy reasons." << endl;
+            wcout << "File is skipped. Cannot open [" << inputFilePath << "] because of invalid path or due to security policy reasons." << endl;
             continue;
         }
 
@@ -119,9 +117,9 @@ int deduplicate(int argc, const char** argv) {
             if(not stringHashes.empty()) stringHashes.clear();
             if (hashesDB.isDBUsed) hashesDB.clearDBs();
 
-            resultFile = getResultFilePtr(destinationPath, inputFilePath, "_dedup");
+            resultFile = getResultFilePtr(destinationPathW, inputFilePath, L"_dedup");
             if (resultFile == NULL) {
-                cout << "Error: cannot open result file [" << joinPaths(destinationPath, inputFilePath) << "] in write mode" << endl;
+                wcout << "Error: cannot open result file [" << joinPaths(destinationPathW, inputFilePath) << "] in write mode" << endl;
                 continue;
             }
         }
@@ -199,19 +197,7 @@ static size_t deduplicateBufferLineByLine(char* buffer, size_t buflen, char* res
     return resultBufferLength;
 }
 
-static const char* getDeduplicatedResultFilePath(const char* inputFilePath) {
-    // По умолчанию создаёт файл с названием как у входного, но с добавлением '_dedup.txt' в конец
-    string destString = getFileNameWithoutExtension(inputFilePath) + "_dedup.txt";
-
-    /* Копируем локальную строку в массив char, выделяя под него память в куче, чтобы
-    * при завершении функции доступ к строке по указателю остался */
-    char* destPath = new char[destString.length() + 1];
-    strcpy(destPath, destString.c_str());
-
-    return destPath;
-}
-
-void HashesDB::init(string destinationUserFilePath) {
+void HashesDB::init(wstring destinationUserFilePath) {
     // Устанавливаем внутренние переменные класса: путь к папке с базой и полный путь к файлу базы
     dbParentDirectory = getDirectoryFromFilePath(destinationUserFilePath);
     dbFilePath = joinPaths(dbParentDirectory, dbFilePath);
@@ -220,8 +206,8 @@ void HashesDB::init(string destinationUserFilePath) {
 void HashesDB::createDB(void) {
     // Устанавливаем флаг, что теперь для хранения хешей используется DB, а не оперативная память
     isDBUsed = true; 
-    DbEnv* penv = open_env(dbParentDirectory.c_str(), 0u, DB_CREATE | DB_INIT_MPOOL);
-    Db* db = open_db(penv, dbFilePath.c_str(), DB_BTREE, DB_CREATE, 0u);
+    DbEnv* penv = open_env(fromWstring(dbParentDirectory).c_str(), 0u, DB_CREATE | DB_INIT_MPOOL);
+    Db* db = open_db(penv, fromWstring(dbFilePath).c_str(), DB_BTREE, DB_CREATE, 0u);
     stringHashes = new db_hashset(db, penv);
 }
 void HashesDB::clearDBs(void) {
@@ -239,5 +225,5 @@ void HashesDB::clearDBs(void) {
 
     // Удаляем файл с временной базой данных и все технические файлы базы
     fs::remove(dbFilePath);
-    for (string techDBFile : dbTechFiles) fs::remove(joinPaths(dbParentDirectory, techDBFile));
+    for (wstring techDBFile : dbTechFiles) fs::remove(joinPaths(dbParentDirectory, techDBFile));
 }
