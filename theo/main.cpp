@@ -71,7 +71,7 @@ static DWORD addExecutablePathToWindowsRegisrty() {
     wstring pathVariableWithTheoDirectory = toWstring(reinterpret_cast<const char*>(bufferForPATHValue)) + L";" + pathToDirectoryWithExecutable;
 
     // Пытаемся установить текущую директорию, в которой находится исполняемый файл софта, в Windows PATH
-    if (RegSetValueExW(registryHkey, programName.c_str(), 0, REG_SZ, (BYTE*)fromWstring(pathToDirectoryWithExecutable).c_str(), static_cast<DWORD>(pathToDirectoryWithExecutable.length())) != ERROR_SUCCESS or RegSetValueExW(registryHkey, L"Path", 0, REG_SZ, (BYTE*)fromWstring(pathVariableWithTheoDirectory).c_str(), static_cast<DWORD>(pathVariableWithTheoDirectory.length())) != ERROR_SUCCESS) {
+    if (RegSetValueExW(registryHkey, programName.c_str(), 0, REG_SZ, (BYTE*)pathToDirectoryWithExecutable.c_str(), static_cast<DWORD>(pathToDirectoryWithExecutable.length() * 2)) != ERROR_SUCCESS or RegSetValueExW(registryHkey, L"Path", 0, REG_SZ,(BYTE*) pathVariableWithTheoDirectory.c_str(), static_cast<DWORD>(pathVariableWithTheoDirectory.length() * 2)) != ERROR_SUCCESS) {
         cout << "Cannot add program to PATH (to Windows regisrty)" << endl;
         return ERROR_ACCESS_DENIED;
     }
