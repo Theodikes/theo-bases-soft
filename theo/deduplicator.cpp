@@ -112,12 +112,11 @@ int deduplicate(int argc, const char** argv) {
         * свой итоговый файл, в котором будут находиться нормализованные строки из входного.
         * Кроме того, очищаем хранилище хешей строк с предыдущего файла, поскольку нам нужно искать
         * дубликаты в каждом входном файле отдельно, а не во всех сразу.*/
-        if (!needMerge) {
+        if (not needMerge) {
             // Очищаем хештаблицы строк прошлых файлов, если надо
             if(not stringHashes.empty()) stringHashes.clear();
             if (hashesDB.isDBUsed) hashesDB.clearDBs();
 
-            fclose(resultFile);
             resultFile = getResultFilePtr(destinationPathW, inputFilePath, L"dedup");
             if (resultFile == NULL) {
                 wcout << "Error: cannot open result file [" << joinPaths(destinationPathW, inputFilePath) << "] in write mode" << endl;
@@ -126,6 +125,7 @@ int deduplicate(int argc, const char** argv) {
         }
 
         processFileByChunks(inputBaseFile, resultFile, deduplicateBufferLineByLine);
+        if (not needMerge) fclose(resultFile);
         // Закрываем входной файл
         fclose(inputBaseFile);
     }
