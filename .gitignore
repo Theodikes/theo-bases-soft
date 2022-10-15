@@ -11,6 +11,7 @@
 *.sln.docstates
 *.txt
 TODO*
+certs
 
 # User-specific files (MonoDevelop/Xamarin Studio)
 *.userprefs
