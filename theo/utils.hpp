@@ -40,8 +40,8 @@ typedef db_set<ull, ElementHolder<ull>> db_hashset;
 #define sourcefiles_info robin_hood::unordered_flat_set<wstring>
 
 // Функции для конвертации обычных строк в wide-строки и обратно
-wstring toWstring(string s) noexcept;
-string fromWstring(wstring s) noexcept;
+wstring toWstring(string s);
+string fromWstring(wstring s);
 
 // Функция для объединения абсолютного пути к папке и имени файла в абсолютный путь к файлу. Возвращает итоговый путь
 wstring joinPaths(wstring dirPath, wstring filePath) noexcept;
@@ -65,8 +65,11 @@ sourcefiles_info getSourceFilesFromUserInput(size_t sourcePathsCount, const char
 // Считает количество строк, разделённых символами переноса строк, в тексте. Каждая строка должна заканчиваться символом \n
 size_t getLinesCountInText(char* bytes) noexcept;
 
-// Возвращает количество байт информации в файле, если файл не найден или к нему нет доступа, возаращает -1
+// Возвращает количество байт информации в файле, если файл не найден или к нему нет доступа, возвращает -1
 long long getFileSize(wstring pathToFile);
+
+// Возвращает количество байт информации в файле, если файл не найден или к нему нет доступа, возвращает -1
+long long getFileSize(FILE* filePtr);
 
 // Возвращает количество свободной оперативной памяти в байтах
 ull getAvailableMemoryInBytes(void) noexcept;

@@ -1,12 +1,12 @@
 ﻿#include "utils.hpp"
 
-wstring toWstring(string s) noexcept {
-	std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
+wstring toWstring(string s) {
+	wstring_convert<codecvt_utf8_utf16<wchar_t>> converter;
 	return converter.from_bytes(s);
 }
 
-string fromWstring(wstring s) noexcept {
-	std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
+string fromWstring(wstring s) {
+	wstring_convert<codecvt_utf8_utf16<wchar_t>> converter;
 	return converter.to_bytes(s);
 }
 
@@ -34,6 +34,7 @@ bool processSourceFileOrDirectory(sourcefiles_info& textFilesPaths, wstring path
 
 bool addFileToSourceList(sourcefiles_info& sourceTextFilesPaths, wstring filePath) noexcept {
 	if (not filePath.ends_with(L".txt")) return false;
+	if (getFileSize(filePath) < 1) return false;
 	sourceTextFilesPaths.insert(filePath);
 	return true;
 }
@@ -68,11 +69,25 @@ size_t getLinesCountInText(char* bytes) noexcept {
 	return stringsCount;
 }
 
+
+long long getFileSize(FILE* filePtr) {
+	if (filePtr == NULL) return -1; // Если файл недоступен, сразу же возвращаем код ошибки
+
+	ull currentPos = _ftelli64(filePtr); // Получаем текущую позицию в файле по указателю
+	_fseeki64(filePtr, 0L, SEEK_END); // Перемещаем указатель в самый конец файла
+	// Получаем позицию в конце файла (то есть, по сути, количество байт в нём)
+	ull fileSizeInBytes = _ftelli64(filePtr); 
+	// Возвращаем позицию указателя на начальную, которая была до наших манипуляций
+	_fseeki64(filePtr, currentPos, SEEK_SET);
+
+	return fileSizeInBytes;
+}
+
 long long getFileSize(wstring pathToFile) {
-	WIN32_FILE_ATTRIBUTE_DATA fileData;
-	if (GetFileAttributesExW(pathToFile.c_str(), GetFileExInfoStandard, &fileData))
-		return (static_cast<ull>(fileData.nFileSizeHigh) << sizeof(fileData.nFileSizeLow) * 8) | fileData.nFileSizeLow;
-	return -1;
+	FILE* filePtr = _wfopen(pathToFile.c_str(), L"rb");
+	long long fileSize = getFileSize(filePtr);
+	fclose(filePtr);
+	return fileSize;
 }
 
 static LPMEMORYSTATUSEX getMemoryInfo(void) noexcept {
@@ -133,8 +148,11 @@ wstring getDirectoryFromFilePath(wstring filePath) noexcept {
 }
 
 void processFileByChunks(FILE* inputFile, FILE* resultFile, size_t processChunkBuffer(char*, size_t, char*)) {
-	// Отдельно объявляем переменную с говорящим названием для понимания её смысла в данном контексте
-	size_t countBytesToReadInOneIteration = OPTIMAL_DISK_CHUNK_SIZE;
+	/* Устанавливаем оптимальное количество байтов для чтения за один раз - если файл маленький,
+	* то считываем весь файл за один раз, если больше размера крупного чанка для чтения,
+	* заданного константой, считываем оптимальными чанками */
+	long long fileSize = getFileSize(inputFile);
+	size_t countBytesToReadInOneIteration = min(OPTIMAL_DISK_CHUNK_SIZE, fileSize);
 
 	/* Буфер, в который будет считываться информация с диска(со входящего файла) и в котором будут считаться строки.
 	* Аллоцируется в куче, потому что в стеке может быть ограничение на размер памяти */
