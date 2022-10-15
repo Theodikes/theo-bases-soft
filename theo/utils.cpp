@@ -70,7 +70,7 @@ size_t getLinesCountInText(char* bytes) noexcept {
 }
 
 
-long long getFileSize(FILE* filePtr) {
+long long getFileSize(FILE* filePtr) noexcept {
 	if (filePtr == NULL) return -1; // Если файл недоступен, сразу же возвращаем код ошибки
 
 	ull currentPos = _ftelli64(filePtr); // Получаем текущую позицию в файле по указателю
@@ -83,11 +83,13 @@ long long getFileSize(FILE* filePtr) {
 	return fileSizeInBytes;
 }
 
-long long getFileSize(wstring pathToFile) {
-	FILE* filePtr = _wfopen(pathToFile.c_str(), L"rb");
-	long long fileSize = getFileSize(filePtr);
-	fclose(filePtr);
-	return fileSize;
+long long getFileSize(wstring pathToFile) noexcept {
+	try {
+		return fs::file_size(pathToFile);
+	}
+	catch (const fs::filesystem_error&) {
+		return -1;
+	}
 }
 
 static LPMEMORYSTATUSEX getMemoryInfo(void) noexcept {

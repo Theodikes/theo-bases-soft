@@ -66,10 +66,10 @@ sourcefiles_info getSourceFilesFromUserInput(size_t sourcePathsCount, const char
 size_t getLinesCountInText(char* bytes) noexcept;
 
 // Возвращает количество байт информации в файле, если файл не найден или к нему нет доступа, возвращает -1
-long long getFileSize(wstring pathToFile);
+long long getFileSize(wstring pathToFile) noexcept;
 
 // Возвращает количество байт информации в файле, если файл не найден или к нему нет доступа, возвращает -1
-long long getFileSize(FILE* filePtr);
+long long getFileSize(FILE* filePtr) noexcept;
 
 // Возвращает количество свободной оперативной памяти в байтах
 ull getAvailableMemoryInBytes(void) noexcept;
