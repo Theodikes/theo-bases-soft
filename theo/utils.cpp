@@ -192,7 +192,7 @@ void processFileByChunks(FILE* inputFile, FILE* resultFile, size_t processChunkB
 	* то считываем весь файл за один раз, если больше размера крупного чанка для чтения,
 	* заданного константой, считываем оптимальными чанками */
 	long long fileSize = getFileSize(inputFile);
-	size_t countBytesToReadInOneIteration = min(OPTIMAL_DISK_CHUNK_SIZE, fileSize);
+	size_t countBytesToReadInOneIteration = min(OPTIMAL_DISK_CHUNK_SIZE, fileSize + 1);
 
 	/* Буфер, в который будет считываться информация с диска(со входящего файла) и в котором будут считаться строки.
 	* Аллоцируется в куче, потому что в стеке может быть ограничение на размер памяти */
