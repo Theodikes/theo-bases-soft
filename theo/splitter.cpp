@@ -119,5 +119,5 @@ static size_t readBufferByLinesUntilCount(char* buffer, size_t buflen, size_t st
 static FILE* getNextSplittedFilePtr(wstring destinationDirectory, size_t linesInOneFile, size_t currentFileNumber, wstring inputFilePath) {
 	wstring resultFilenameWithExtension = getFileNameWithoutExtension(inputFilePath) + L"_" + to_wstring(linesInOneFile) + L"_" + to_wstring(currentFileNumber) + L".txt";
 	wstring pathToSplittedFile = joinPaths(destinationDirectory, resultFilenameWithExtension);
-	return _wfopen(pathToSplittedFile.c_str(), L"wb+");
+	return fileOpen(pathToSplittedFile, "wb+");
 }

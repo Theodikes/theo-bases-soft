@@ -46,6 +46,11 @@ string fromWstring(wstring s);
 // Функция для объединения абсолютного пути к папке и имени файла в абсолютный путь к файлу. Возвращает итоговый путь
 wstring joinPaths(wstring dirPath, wstring filePath) noexcept;
 
+/* Открывает файлы с именем в любой кодировке верным образом, при невозможности открыть возвращает NULL */
+FILE* fileOpen(wstring filePath, const wchar_t* openFlags) noexcept;
+FILE* fileOpen(wstring filePath, string openFlags) noexcept;
+FILE* fileOpen(string filePath, string openFlags) noexcept;
+
 // Функция принимает в качестве аргумента валидный путь к файлу и возвращает имя файла (без расширения)
 wstring getFileNameWithoutExtension(wstring pathToFile) noexcept;
 

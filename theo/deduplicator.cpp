@@ -97,7 +97,7 @@ int deduplicate(int argc, const char** argv) {
     hashesDB.init(needMerge ? getDirectoryFromFilePath(destinationPathW) : destinationPathW);
 
     for (const wstring& inputFilePath : sourceFilesPaths) {
-        FILE* inputBaseFile = _wfopen(inputFilePath.c_str(), L"rb");
+        FILE* inputBaseFile = fileOpen(inputFilePath, "rb");
         if (inputBaseFile == NULL) {
             wcout << "File is skipped. Cannot open [" << inputFilePath << "] because of invalid path or due to security policy reasons." << endl;
             continue;

@@ -14,6 +14,44 @@ wstring joinPaths(wstring dirPath, wstring filePath) noexcept {
 	return (fs::path(dirPath) / fs::path(filePath)).wstring();
 }
 
+/* Конвертация длинного пути файла в короткий, если это возможно (если включён тип путей 8.3 на Windows)
+* О типах путей: https://learn.microsoft.com/ru-ru/windows/win32/fileio/naming-a-file#short-vs-long-names
+* Если конвертация не удалась, возвращает исходный длинный путь */
+wstring _maybeConvertLongPathToShort(wstring longPath) {
+	wchar_t shortPath[MAX_PATH];
+	DWORD shortPathSize = GetShortPathNameW(longPath.c_str(), shortPath, MAX_PATH);
+	if (shortPathSize == 0) return longPath;
+
+	/* Копируем строку, поскольку локальная переменная shortPath очистится после выхода из функции
+	* и значение строки станет недоступно, если вернуть её */
+	wstring shortPathW = shortPath;
+	return shortPathW;
+}
+
+FILE* fileOpen(string filePath, string openFlags) noexcept {
+	return fileOpen(toWstring(filePath), toWstring(openFlags).c_str());
+}
+
+FILE* fileOpen(wstring filePath, string openFlags) noexcept {
+	return fileOpen(filePath, toWstring(openFlags).c_str());
+}
+
+FILE* fileOpen(wstring filePath, const wchar_t* openFlags) noexcept {
+	try {
+		/* Если нам нужно считать файлы, желательно превратить путь в short - формат, чтобы
+		* даже файлы в непонятной кодировке открывались корректно */
+		if (openFlags[0] == L'r') {
+			wstring simpleFilePath = _maybeConvertLongPathToShort(filePath);
+			return _wfopen(simpleFilePath.c_str(), openFlags);
+		}
+		// Поскольку записывать файлы надо ровно как указал пользователь, тут на short-формат не меняем
+		else return _wfopen(filePath.c_str(), openFlags);
+	}
+	catch (...) {
+		return NULL;
+	}
+}
+
 
 bool processSourceFileOrDirectory(sourcefiles_info& textFilesPaths, wstring path, bool recursive)
 {
@@ -33,7 +71,7 @@ bool processSourceFileOrDirectory(sourcefiles_info& textFilesPaths, wstring path
 }
 
 bool addFileToSourceList(sourcefiles_info& sourceTextFilesPaths, wstring filePath) noexcept {
-	if (not filePath.ends_with(L".txt")) return false;
+	if (not (fs::path(filePath).extension() == ".txt")) return false;
 	if (getFileSize(filePath) < 1) return false;
 	sourceTextFilesPaths.insert(filePath);
 	return true;
@@ -198,7 +236,7 @@ void processFileByChunks(FILE* inputFile, FILE* resultFile, size_t processChunkB
 void processAllSourceFiles(sourcefiles_info sourceFilesPaths, bool needMerge, FILE* resultFile, wstring destinationDirectoryPath, wstring resultFilesSuffix, size_t processChunkBuffer(char* inputBuffer, size_t inputBufferLength, char* resultBuffer)) {
 	for (wstring& sourceFilePath : sourceFilesPaths) {
 
-		FILE* inputBaseFilePointer = _wfopen(sourceFilePath.c_str(), L"rb");
+		FILE* inputBaseFilePointer = fileOpen(sourceFilePath, "rb");
 		if (inputBaseFilePointer == NULL) {
 			wcout << "File is skipped. Cannot open [" << sourceFilePath << "] because of invalid path or due to security policy reasons." << endl;
 			continue;
@@ -234,7 +272,7 @@ void processDestinationPath(const char** destinationPathPtr, bool needMerge, FIL
 
 		/* Открываем итоговый файл и присваиваем значение на открытый файл по указателю, чтобы он
 		* был доступен вне функции */
-		*resultFile = fopen(*destinationPathPtr, "wb+");
+		*resultFile = fileOpen(*destinationPathPtr, "wb+");
 		if (*resultFile == NULL) {
 			cout << "Error: cannot open result file [" << *destinationPathPtr << "] in write mode" << endl;
 			exit(ERROR_OPEN_FAILED);
@@ -287,7 +325,7 @@ FILE* getResultFilePtr(wstring pathToResultFolder, wstring pathToSourceFile, wst
 	} while (isAnythingExistsByPath(resultFilePath));
 
 	// Записывать будем в открытый через fopen файл и в байтовом режиме для большей скорости
-	FILE* resultFilePtr = _wfopen(resultFilePath.c_str(), L"wb+");
+	FILE* resultFilePtr = fileOpen(resultFilePath, "wb+");
 	if (resultFilePtr == NULL) {
 		wcout << "Cannot create file for " << fileSuffixName << " base by path : [" << resultFilePath << "] " << endl;
 	}

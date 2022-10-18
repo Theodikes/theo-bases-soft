@@ -42,7 +42,7 @@ int count(int argc, const char** argv) {
 
 	chrono::steady_clock::time_point begin = chrono::steady_clock::now();
 	for (const wstring& sourceFilePath : sourceFilesPaths) {
-		FILE* sourceFilePtr = _wfopen(sourceFilePath.c_str(), L"rb");
+		FILE* sourceFilePtr = fileOpen(sourceFilePath, "rb");
 		if (sourceFilePtr == NULL) {
 			wcout << "File is skipped. Cannot open [" << sourceFilePath << "] because of invalid path or due to security policy reasons." << endl;
 			continue;
