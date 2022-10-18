@@ -207,17 +207,23 @@ void processFileByChunks(FILE* inputFile, FILE* resultFile, size_t processChunkB
 		/* Считываем нужное количество байт из входного файла в буфер, количество реально считаных байт записывается
 		*  в переменную, нужную на случай, если файл закончился, и реально считалось меньше байт, чем предполагалось */
 		size_t bytesReaded = fread(inputBuffer, sizeof(char), countBytesToReadInOneIteration, inputFile);
+		// Если ничего не считалось, значит, файл невалидный и прекращаем сразу же
+		if (bytesReaded == 0) return;
 		size_t inputBufferLength = bytesReaded;
 		/* Если это последняя строка во входном файле и после неё нет переноса строки, устанавливаем его после
 		* конца строки, чтобы в дальнейшем функция-обработчик считала это за цельную строку.
 		* Кроме того, увеличиваем длину входного буфера на единицу, чтобы последний перенос был считан */
 		if (feof(inputFile) and inputBuffer[inputBufferLength - 1] != '\n') inputBuffer[inputBufferLength++] = '\n';
-		/* Если в этом считанном входном буфере осталась незаконченная строка, обрезанная при считывании побайтово
-		 * делаем отступ в файле назад на длину оставшегося в буфере неполного куска строки,
-		 * чтобы при следующем fread обработать её полностью. Так же уменьшаем размер входного буфера для чтения,
-		 * чтобы туда не попал неполный кусок строки */
+		/* Если в этом считанном входном буфере осталась незаконченная строка, 
+		 * обрезанная при считывании побайтово делаем отступ в файле назад на длину 
+		 * оставшегося в буфере неполного куска строки, чтобы при следующем fread обработать её полностью. 
+		 * Также уменьшаем размер входного буфера для чтения, чтобы туда не попал неполный кусок строки */
 		else {
-			while (inputBuffer[inputBufferLength - 1] != '\n') inputBufferLength--;
+			// Проверяем, что inputBufferLength > 0, так как может быть, что в буфере нет переносов строк
+			while (inputBufferLength > 0 and inputBuffer[inputBufferLength - 1] != '\n') inputBufferLength--;
+			/* Если переносов строк в буфере не было вообще, пропускаем считанное
+			* так как нет смысла обрабатывать буфер, в котором нет строк (так как нет переносов строк) */
+			if (inputBufferLength == 0) continue;
 			size_t remainingStringPartLength = bytesReaded - inputBufferLength;
 			if(remainingStringPartLength) fseek(inputFile, -static_cast<long>(remainingStringPartLength), SEEK_CUR);
 		}
