@@ -37,6 +37,9 @@ FILE* fileOpen(wstring filePath, string openFlags) noexcept {
 }
 
 FILE* fileOpen(wstring filePath, const wchar_t* openFlags) noexcept {
+	// Если путь длиннее MAX_PATH, надо добавить соответствующий идентификатор, чтобы его открыло корректно
+	if (filePath.length() >= MAX_PATH and not filePath.starts_with(WIN_LONG_PATH_START)) filePath.insert(0, WIN_LONG_PATH_START);
+
 	try {
 		/* Если нам нужно считать файлы, желательно превратить путь в short - формат, чтобы
 		* даже файлы в непонятной кодировке открывались корректно */
@@ -83,7 +86,10 @@ sourcefiles_info getSourceFilesFromUserInput(size_t sourcePathsCount, const char
 
 	// Обрабатываем все пути, указанные пользователем, получаем оттуда все txt-файлы и сохраняем их в sourceFilesPaths
 	for (size_t i = 0; i < sourcePathsCount; i++) {
-		processSourceFileOrDirectory(sourceFilesPaths, toWstring(userSourcePaths[i]), checkDirectoriesRecursive);
+		/* Добавляем в начале пути \\ ? \, чтобы либа filesystem обрабатывала длинные пути,
+		* если они будут (допустим, если какой-то файл превышает лимит, заданный в MAX_PATH */
+		wstring currentPathLong = WIN_LONG_PATH_START + toWstring(userSourcePaths[i]);
+		processSourceFileOrDirectory(sourceFilesPaths, currentPathLong, checkDirectoriesRecursive);
 	}
 
 	// Если ни одного валидного пути не оказалось, выходим

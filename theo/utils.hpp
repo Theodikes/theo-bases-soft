@@ -33,6 +33,10 @@ constexpr unsigned OPTIMAL_DISK_CHUNK_SIZE = 1024 * 1024 * 64;
 // Сокращение ull для уменьшения количества кода и размера аргументов функций
 #define ull unsigned long long
 
+/* Строка, которую надо добавлять в начало длинного пути(длиннее MAX_PATH), чтобы
+* система Windows считала его валидным. Например, \\?\C:\Users\Admin\somelooooo......ng */
+#define WIN_LONG_PATH_START LR"(\\?\)"
+
 // Тип для хранилища уникальных хешей (чисел unsigned long long), расположенного в дисковой памяти
 typedef db_set<ull, ElementHolder<ull>> db_hashset;
 
