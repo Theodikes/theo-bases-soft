@@ -22,9 +22,9 @@ static const char* const usages[] = {
 
 int tokenize(int argc, const char** argv) {
 	// Брать ли файлы для токенизации из указанных пользователем директорий рекурсивно (проверяя субдиректории)
-	bool checkSourceDirectoriesRecursive = false; 
+	int checkSourceDirectoriesRecursive = 0; 
 	const char* destinationPath = NULL; // Путь к итоговой папке или файлу (если needMerge = true)
-	bool needMerge = false; // Требуется ли объединять нормализованные строки со всех файлов в один итоговый
+	int needMerge = 0; // Требуется ли объединять нормализованные строки со всех файлов в один итоговый
 	const char* resultStringPart = "first";
 
 	struct argparse_option options[] = {

@@ -53,9 +53,9 @@ int deduplicate(int argc, const char** argv) {
     // Путь к итоговому файлу, куда будут записаны строки без дубликатов.
     const char* destinationPath = NULL;
     // Надо ли объединять все итоговые файлы в один и удалять общие дубликаты в разных файлах
-    bool needMerge = false; 
+    int needMerge = 0; 
     // Нужно ли проверить поданные пользователем директории рекурсивно
-    bool checkSourceDirectoriesRecursive = false; 
+    int checkSourceDirectoriesRecursive = 0; 
 	size_t	linesInOneFile = 0;
 
 	struct argparse_option options[] = {

@@ -72,8 +72,8 @@ int normalize(int argc, const char** argv) {
 	// Итоговый сепаратор, которым будут разделены email/log/num и password в нормализованной базе
 	const char* resultSeparatorInputAsString = NULL; 
 	// Требуется ли рекурсивно искать файлы для нормализации в переданных пользователем директориях
-	bool checkSourceDirectoriesRecursive = false;
-	bool needMerge = false; // Требуется ли объединять нормализованные строки со всех файлов в один итоговый
+	int checkSourceDirectoriesRecursive = 0;
+	int needMerge = 0; // Требуется ли объединять нормализованные строки со всех файлов в один итоговый
 	const char* basesType = "emailpass"; // Тип нормализуемых баз, по умолчанию email:pass
 
 	struct argparse_option options[] = {

@@ -9,7 +9,7 @@ static const char* const usages[] = {
 int count(int argc, const char** argv) {
 	/* Требуется ли рекурсивно искать файлы для подсчёта строк в переданных пользователем директориях
 	 * (то есть, надо ли проверять поддиректории и поддиректории поддиректорий и так далее до конца) */
-	bool checkSourceDirectoriesRecursive = false;
+	int checkSourceDirectoriesRecursive = 0;
 
 	struct argparse_option options[] = {
 		OPT_HELP(),

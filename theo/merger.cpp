@@ -10,7 +10,7 @@ int merge(int argc, const char** argv) {
 	const char* resultFilePath = "merged.txt";
 	/* Требуется ли рекурсивно искать файлы для объединения в переданных пользователем директориях (то есть,
 	* надо ли проверять поддиректории и поддиректории поддиректорий и так далее до конца) */
-	bool checkSourceDirectoriesRecursive = false;
+	int checkSourceDirectoriesRecursive = 0;
 
 	struct argparse_option options[] = {
 		OPT_HELP(),
