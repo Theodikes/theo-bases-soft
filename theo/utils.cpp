@@ -86,10 +86,15 @@ sourcefiles_info getSourceFilesFromUserInput(size_t sourcePathsCount, const char
 
 	// Обрабатываем все пути, указанные пользователем, получаем оттуда все txt-файлы и сохраняем их в sourceFilesPaths
 	for (size_t i = 0; i < sourcePathsCount; i++) {
-		/* Добавляем в начале пути \\ ? \, чтобы либа filesystem обрабатывала длинные пути,
+		/* Добавляем в начале пути \\ ? \, чтобы библиотека filesystem обрабатывала длинные пути,
 		* если они будут (допустим, если какой-то файл превышает лимит, заданный в MAX_PATH */
-		wstring currentPathLong = WIN_LONG_PATH_START + toWstring(userSourcePaths[i]);
-		processSourceFileOrDirectory(sourceFilesPaths, currentPathLong, checkDirectoriesRecursive);
+		wstring currentPath = toWstring(userSourcePaths[i]);
+		/* Превращаем каждый путь в абсолютный, так как относительные(релативные) становятся
+		* невалидными, если к ним добавить идентификатор длинного пути */
+		wstring absolutePath = fs::absolute(currentPath).wstring();
+		wstring currentLongPath = WIN_LONG_PATH_START + absolutePath;
+
+		processSourceFileOrDirectory(sourceFilesPaths, currentLongPath, checkDirectoriesRecursive);
 	}
 
 	// Если ни одного валидного пути не оказалось, выходим
