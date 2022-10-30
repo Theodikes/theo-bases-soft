@@ -37,18 +37,19 @@ FILE* fileOpen(wstring filePath, string openFlags) noexcept {
 }
 
 FILE* fileOpen(wstring filePath, const wchar_t* openFlags) noexcept {
+	wstring fileAbsolutePath = fs::absolute(filePath);
 	// Если путь длиннее MAX_PATH, надо добавить соответствующий идентификатор, чтобы его открыло корректно
-	if (filePath.length() >= MAX_PATH and not filePath.starts_with(WIN_LONG_PATH_START)) filePath.insert(0, WIN_LONG_PATH_START);
+	if (fileAbsolutePath.length() >= MAX_PATH and not fileAbsolutePath.starts_with(WIN_LONG_PATH_START)) fileAbsolutePath.insert(0, WIN_LONG_PATH_START);
 
 	try {
 		/* Если нам нужно считать файлы, желательно превратить путь в short - формат, чтобы
 		* даже файлы в непонятной кодировке открывались корректно */
 		if (openFlags[0] == L'r') {
-			wstring simpleFilePath = _maybeConvertLongPathToShort(filePath);
+			wstring simpleFilePath = _maybeConvertLongPathToShort(fileAbsolutePath);
 			return _wfopen(simpleFilePath.c_str(), openFlags);
 		}
 		// Поскольку записывать файлы надо ровно как указал пользователь, тут на short-формат не меняем
-		else return _wfopen(filePath.c_str(), openFlags);
+		else return _wfopen(fileAbsolutePath.c_str(), openFlags);
 	}
 	catch (...) {
 		return NULL;
