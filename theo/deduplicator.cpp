@@ -61,9 +61,9 @@ int deduplicate(int argc, const char** argv) {
 	struct argparse_option options[] = {
 		OPT_HELP(),
         OPT_GROUP("Basic options"),
-        OPT_INTEGER('m', "memory", &memoryUsageMaxPercent, "Maximum percentage of RAM usage. Only number (whout percent symbol).\n\t\t\t      After reaching limit, deduplication continues on disk (default - 90%)"),
+        OPT_INTEGER(0, "memory", &memoryUsageMaxPercent, "Maximum percentage of RAM usage. Only number (whout percent symbol).\n\t\t\t      After reaching limit, deduplication continues on disk (default - 90%)"),
         OPT_GROUP("File options"),
-        OPT_BOOLEAN(0, "merge", &needMerge, "remove duplicates from all lines of input files together and put result to one file"),
+        OPT_BOOLEAN('m', "merge", &needMerge, "remove duplicates from all lines of input files together and put result to one file"),
         OPT_STRING('d', "destination", &destinationPath, "absolute or relative path to result folder(default: current directory)\n\t\t\t      or file, if merge parameter is specified (default: dedup_merged.txt)"),
         OPT_BOOLEAN('r', "recursive", &checkSourceDirectoriesRecursive, "check source directories recursive (default - false)"),
         OPT_GROUP("All unmarked (positional) arguments are considered paths to files and folders with bases that need to be deduplicated.\nExample command: 'theo d -d result base1.txt base2.txt'. More: github.com/Theodikes/theo-bases-soft"),
