@@ -120,6 +120,29 @@ size_t getLinesCountInText(char* bytes) noexcept {
 }
 
 
+long long getStringCountInFile(const wstring& filePath, size_t temporaryBufferSizeInBytes, char* temporaryInputBuffer) {
+	FILE* sourceFilePtr = fileOpen(filePath, "rb");
+	if (sourceFilePtr == NULL) return -1;
+
+	// Если буфер не инициализирован при вызове функции, создаём его внутри функции
+	bool isBufferInitializedOnTopLevel = temporaryInputBuffer != NULL;
+	if (not isBufferInitializedOnTopLevel) temporaryInputBuffer = new char[temporaryBufferSizeInBytes];
+
+	ull stringsCount = 0;
+	while (!feof(sourceFilePtr)) {
+		size_t bytesReaded = fread(temporaryInputBuffer, sizeof(char), temporaryBufferSizeInBytes, sourceFilePtr);
+		for (size_t i = 0; i < bytesReaded; i++) if (temporaryInputBuffer[i] == '\n') stringsCount++;
+		if (feof(sourceFilePtr) and temporaryInputBuffer[bytesReaded - 1] != '\n') stringsCount++;
+	}
+	fclose(sourceFilePtr);
+	// Если буфер был создан в функии, после завершения функции его необходимо освободить
+	if (not isBufferInitializedOnTopLevel) delete[] temporaryInputBuffer;
+
+	return stringsCount;
+}
+
+
+
 long long getFileSize(FILE* filePtr) noexcept {
 	if (filePtr == NULL) return -1; // Если файл недоступен, сразу же возвращаем код ошибки
 

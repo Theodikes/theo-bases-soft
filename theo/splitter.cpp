@@ -16,12 +16,14 @@ static const char* const usages[] = {
 
 int split(int argc, const char** argv) {
 	const char* destinationDirectoryPath = ".";
-	size_t	linesInOneFile = 0;
+	int linesInOneResultFile = 0;
+	int parts = 0;
 
 	struct argparse_option options[] = {
 		OPT_HELP(),
 		OPT_GROUP("Basic options"),
-		OPT_INTEGER('l', "lines", &linesInOneFile, "Number of lines in each file after splitting"),
+		OPT_INTEGER('l', "lines", &linesInOneResultFile, "Number of lines in each file after splitting"),
+		OPT_INTEGER('p', "parts", &parts, "Into how many parts divide the source file"),
 		OPT_GROUP("File options"),
 		OPT_STRING('d', "destination", &destinationDirectoryPath, "Destination directory, where the splitted files will be written\n\t\t\t\t  (current directory by default)"),
 		OPT_GROUP("    Unmarked (positional) argument are considered as path to file that need to be splitted. "),
@@ -35,8 +37,13 @@ int split(int argc, const char** argv) {
 		return -1;
 	}
 
-	if (linesInOneFile < 1) {
-		cout << "Error: wrong 'lines' parameter value [" << linesInOneFile << "]: it must be a positive integer" << endl;
+	if (parts and linesInOneResultFile) {
+		cout << "Error: only one parameter can be specified: either '--parts' or '--lines'" << endl;
+		exit(1);
+	}
+
+	if (not parts and not linesInOneResultFile) {
+		cout << "Error: you need to specify one of required parameters: either '--parts' or '--lines' with positive integer" << endl;
 		exit(1);
 	}
 
@@ -44,7 +51,7 @@ int split(int argc, const char** argv) {
 	checkDestinationDirectory(toWstring(destinationDirectoryPath));
 
 	const char* inputFilePath = argv[0];
-	FILE* inputFilePtr = fopen(inputFilePath, "rb");
+	FILE* inputFilePtr = fileOpen(inputFilePath, "rb");
 	if (inputFilePtr == NULL) {
 		cout << "Error: cannot open [" << inputFilePath << "] because of invalid path or due to security policy reasons." << endl;
 		exit(1);
@@ -58,7 +65,8 @@ int split(int argc, const char** argv) {
 	ull fileSize = getFileSize(toWstring(inputFilePath));
 	size_t countBytesToReadInOneIteration = min(OPTIMAL_DISK_CHUNK_SIZE, fileSize);
 
-	/* Буфер, в который будет считываться информация с диска(со входящего файла) и в котором будут считаться строки.
+	/* Буфер, в который будет считываться информация с диска(со входящего файла) 
+	* и в котором будут считаться строки.
 	* Аллоцируется в куче, потому что в стеке может быть ограничение на размер памяти */
 	char* buffer = new char[countBytesToReadInOneIteration];
 	if (buffer == NULL) {
@@ -66,15 +74,40 @@ int split(int argc, const char** argv) {
 		exit(1);
 	}
 
+	/* Если файл надо разделить на определённое количество частей, то сначала
+	 * считаем количество строк во входном файле и делим общее число строк из него
+	 * на количество необходимых частей, получая так нужное количество строк на один итоговый файл.
+	 */
+	if (parts > 0) {
+		long long linesInInputFileCount = getStringCountInFile(toWstring(inputFilePath));
+		if (linesInInputFileCount == -1) {
+			cout << "Error: cannot get count of lines in input file [" << inputFilePath << "]." << endl;
+			return -1;
+		}
+		
+		// Если итоговых частей указано больше, чем строк во входном файле - это ошибка, выходим
+		long long linesInOneResultFileFloored = linesInInputFileCount / parts;
+		if (linesInOneResultFileFloored == 0) {
+			cout << "Error: invalid '--parts' parameter value - there are fewer lines in the input file [" << inputFilePath << "] than the specified number of parts into which it must be divided" << endl;
+			return -1;
+		}
+
+		/* Округляем количество строк в одном файле в большую сторону, поскольку,
+		 * если поделилось неровно, в последнем итоговом файле должно быть просто меньше строк,
+		 * чем в остальных, и общее число итоговых файлов должно быть ровно заданное пользователем
+		 */
+		linesInOneResultFile = ceil(linesInInputFileCount / (double)parts);
+	}
+
 	/* Количество строк, которое должно быть в каждом файле после разделения. Создается дополнительная переменная,
 	* помимо 'linesInOneFile', значение которой вводится пользователем, поскольку нужна изменяющаяся по указателю
 	* переменная для работы с временным буфером (подсчёта строк в каждом новом) */
-	size_t remainingStrings = linesInOneFile; 
+	size_t remainingStrings = linesInOneResultFile; 
 
 	/* Текущий номер файла, в который записываются строки из изначального. Имя каждого нового файла - 
 	* имя изначального файла без расширения + '_[порядковый номер файла].txt' в конце */
 	size_t currentFileNumber = 1;
-	FILE* currentSplittedFilePtr = getNextSplittedFilePtr(toWstring(destinationDirectoryPath), linesInOneFile, currentFileNumber, toWstring(inputFilePath));
+	FILE* currentSplittedFilePtr = getNextSplittedFilePtr(toWstring(destinationDirectoryPath), linesInOneResultFile, currentFileNumber, toWstring(inputFilePath));
 
 	while (!feof(inputFilePtr)) {
 		size_t bytesReaded = fread(buffer, sizeof(char), countBytesToReadInOneIteration, inputFilePtr);
@@ -95,10 +128,10 @@ int split(int argc, const char** argv) {
 
 			// Если мы набрали нужное число строк для текущего файла, обновляем счетчик строк, закрываем файл и создаем следующий
 			if (remainingStrings == 0) {
-				remainingStrings = linesInOneFile;
+				remainingStrings = linesInOneResultFile;
 				fclose(currentSplittedFilePtr);
 				// Если конец входного файла, новый файл для строк создавать не надо, так как он будет пустым
-				if(!feof(inputFilePtr) or startPos < bytesReaded) currentSplittedFilePtr = getNextSplittedFilePtr(toWstring(destinationDirectoryPath), linesInOneFile, ++currentFileNumber, toWstring(inputFilePath));
+				if(!feof(inputFilePtr) or startPos < bytesReaded) currentSplittedFilePtr = getNextSplittedFilePtr(toWstring(destinationDirectoryPath), linesInOneResultFile, ++currentFileNumber, toWstring(inputFilePath));
 			}
 		}
 		// Если прочитали весь файл, который мы делим, закрываем текущий файл для записи (он будет неполным и последним)

@@ -42,18 +42,14 @@ int count(int argc, const char** argv) {
 
 	chrono::steady_clock::time_point begin = chrono::steady_clock::now();
 	for (const wstring& sourceFilePath : sourceFilesPaths) {
-		FILE* sourceFilePtr = fileOpen(sourceFilePath, "rb");
-		if (sourceFilePtr == NULL) {
-			wcout << "File is skipped. Cannot open [" << sourceFilePath << "] because of invalid path or due to security policy reasons." << endl;
+		long long stringsInCurrentFile = getStringCountInFile(sourceFilePath, countBytesToReadInOneIteration, buffer);
+		// Если функция вернула -1, это значит, что она не смогла открыть файл.
+		if (stringsInCurrentFile == -1) {
+			wcout << "File is skipped. Cannot open [" << sourceFilePath << "] because of invalid path or due to security policy reasons." << endl; 
 			continue;
 		}
-
-		while (!feof(sourceFilePtr)) {
-			size_t bytesReaded = fread(buffer, sizeof(char), countBytesToReadInOneIteration, sourceFilePtr);
-			for (size_t i = 0; i < bytesReaded; i++) if (buffer[i] == '\n') stringsCount++;
-			if (feof(sourceFilePtr) and buffer[bytesReaded - 1] != '\n') stringsCount++;
-		}
-		fclose(sourceFilePtr);
+		// Если нет - добавляем к общему числу строк количество строк текущем в файле
+		else stringsCount += static_cast<ull>(stringsInCurrentFile);
 	}
 	delete[] buffer;
 
