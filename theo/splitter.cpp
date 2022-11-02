@@ -96,7 +96,7 @@ int split(int argc, const char** argv) {
 		 * если поделилось неровно, в последнем итоговом файле должно быть просто меньше строк,
 		 * чем в остальных, и общее число итоговых файлов должно быть ровно заданное пользователем
 		 */
-		linesInOneResultFile = ceil(linesInInputFileCount / (double)parts);
+		linesInOneResultFile = static_cast<int>(ceil(linesInInputFileCount / (double)parts));
 	}
 
 	/* Количество строк, которое должно быть в каждом файле после разделения. Создается дополнительная переменная,
