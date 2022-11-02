@@ -222,7 +222,7 @@ wstring getDirectoryFromFilePath(wstring filePath) noexcept {
 	return fs::absolute(filePath).parent_path().wstring();
 }
 
-void processFileByChunks(FILE* inputFile, FILE* resultFile, size_t processChunkBuffer(char*, size_t, char*)) {
+void processStringsInFileByChunks(FILE* inputFile, FILE* resultFile, size_t processChunkBuffer(char*, size_t, char*)) {
 	/* Устанавливаем оптимальное количество байтов для чтения за один раз - если файл маленький,
 	* то считываем весь файл за один раз, если больше размера крупного чанка для чтения,
 	* заданного константой, считываем оптимальными чанками */
@@ -294,7 +294,7 @@ void processAllSourceFiles(sourcefiles_info sourceFilesPaths, bool needMerge, FI
 		}
 
 		// Обрабатываем весь файл почанково и записываем все нормализованные строки в итоговый файл
-		processFileByChunks(inputBaseFilePointer, resultFile, processChunkBuffer);
+		processStringsInFileByChunks(inputBaseFilePointer, resultFile, processChunkBuffer);
 		// Закрываем входной файл
 		fclose(inputBaseFilePointer);
 

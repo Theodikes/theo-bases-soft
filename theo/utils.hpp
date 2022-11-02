@@ -136,14 +136,14 @@ bool createDirectoryUserDialog(wstring creatingDirectoryPath) noexcept;
 * на отрезанный кусок неполной строки, а полученный буфер обрабатывается функцией processChunkBuffer, уникальной
 * для каждой команды(у deduplicate будет одна функция, у normalize другая), и итоговые данные после обработки
 * входного буфера записываются в итоговый файл (будет ли это общий файл, определяет функция выше уровнем). */
-void processFileByChunks(FILE* inputFile, FILE* resultFile, size_t processChunkBuffer(char*, size_t, char*));
+void processStringsInFileByChunks(FILE* inputFile, FILE* resultFile, size_t processChunkBuffer(char*, size_t, char*));
 
 /* Обработка каждого файла из списка путей ко всем файлам, переданным пользователем. Обёртка верхнего уровня
-* для функции processFileByChunks, служит для корректной обработки ситуации со множеством входных файлов
+* для функции processStringsInFileByChunks, служит для корректной обработки ситуации со множеством входных файлов
 * (тогда как та функция работает исключительно с одним входным и одним выходным).
 * Обрабатывает ситуацию, когда пользователю требуется сложить все итоговые строки в один файл, если же нет - 
 * создаёт для каждого входного файла свой собственный итоговый с обработанными строками.
-* Для каждого конкретного входного файла все действия выполняются с помощью функции 'processFileByChunks'.
+* Для каждого конкретного входного файла все действия выполняются с помощью функции 'processStringsInFileByChunks'.
 * После полного выполнения функция закрывает все открытые файлы. */
 void processAllSourceFiles(sourcefiles_info sourceFilesPaths, bool needMerge, FILE* resultFile, wstring destinationDirectoryPath, wstring resultFilesSuffix, size_t processChunkBuffer(char* inputBuffer, size_t inputBufferLength, char* resultBuffer));
 

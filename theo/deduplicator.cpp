@@ -124,7 +124,7 @@ int deduplicate(int argc, const char** argv) {
             }
         }
 
-        processFileByChunks(inputBaseFile, resultFile, deduplicateBufferLineByLine);
+        processStringsInFileByChunks(inputBaseFile, resultFile, deduplicateBufferLineByLine);
         if (not needMerge) fclose(resultFile);
         // Закрываем входной файл
         fclose(inputBaseFile);
