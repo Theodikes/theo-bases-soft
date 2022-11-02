@@ -1,7 +1,7 @@
 ﻿#include "utils.hpp"
 
 // Возможные типы первой части строк в файле: емейлы (базы email:pass), номера (num:pass) и логины (log:pass)
-static enum class StringFirstPartTypes {Email, Number, Login };
+enum class StringFirstPartTypes {Email, Number, Login };
 
 // Типы первой части строк, сопоставление enum-значений со строковыми для обработки пользовательского ввода
 static robin_hood::unordered_map<string, StringFirstPartTypes> stringFirstPartTypeMap = { {"emailpass", StringFirstPartTypes::Email},
