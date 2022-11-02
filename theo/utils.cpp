@@ -331,25 +331,14 @@ void checkDestinationDirectory(wstring destinationDirectoryPath) noexcept {
 	// Если на указанном пользователем пути к итоговой директории что-то есть, и это что-то - не папка, выходим
 	if (isAnythingExistsByPath(destinationDirectoryPath) and not isDirectory(destinationDirectoryPath)) {
 		wcout << "Error: something exists by path [" << destinationDirectoryPath << "] and this isn`t directory" << endl;
-		exit(1);
+		exit(ERROR_DIRECTORY_NOT_SUPPORTED);
 	}
 
-	// Если директории не существует и пользователь не хочет её создавать, выходим
-	if (not isAnythingExistsByPath(destinationDirectoryPath) and not createDirectoryUserDialog(destinationDirectoryPath)) exit(1);
-}
-
-bool createDirectoryUserDialog(wstring creatingDirectoryPath) noexcept {
-	char answer;
-	cout << "Destination directory doesn`t exist, create it? (y/n): ";
-	cin >> answer;
-	if (answer != 'y') return false;
-	bool ret = fs::create_directory(creatingDirectoryPath);
-	if (!ret) {
-		cout << "Error: cannot create directory by destination path" << endl;
-		return false;
+	// Если директории не существует и её невозможно создать, выходим
+	if (not isAnythingExistsByPath(destinationDirectoryPath) and not fs::create_directory(destinationDirectoryPath)) {
+		wcout << "Error: cannot create directory by given path [" << destinationDirectoryPath << "]" << endl;
+		exit(ERROR_DIRECTORY);
 	}
-	cout << "Destination directory successfully created!" << endl;
-	return true;
 }
 
 FILE* getResultFilePtr(wstring pathToResultFolder, wstring pathToSourceFile, wstring fileSuffixName) {

@@ -18,12 +18,14 @@
 #include <Windows.h>
 
 using namespace std;
-using namespace dbstl;
+using namespace dbstl; // Неймспейс библиотеки для работы с базой данных
 namespace fs = std::filesystem;
 
 // Оптимальный размер чанка диска (ssd) для записи и чтения за одну операцию (fread/fwrite), вычислено тестированием
 constexpr unsigned OPTIMAL_DISK_CHUNK_SIZE = 1024 * 1024 * 64;
 
+// Средняя длина строки в файле обычной базы с аккаунтами
+#define AVERAGE_STRING_LEGTH_IN_FILE 16
 
 // Я люблю очевидные и чистые условия, как в питоне, извините
 #define and &&
@@ -124,12 +126,11 @@ long long getStringCountInFile(const wstring& filePath, size_t temporaryBufferSi
  * к итоговому файлу передаётся в последнем аргументе, так как он уникален для каждой команды. */
 void processDestinationPath(const char** destinationPathPtr, bool needMerge, FILE** resultFile, const char* defaultResultMergedFilePath) noexcept;
 
-/* Проверяет директорию, указанную пользователем как директорию вывода, если есть какая-то ошибка
- * (например, на месте директории с таким же именем уже присутствует файл)- завершает работу программы */
+/* Проверяет директорию, указанную пользователем как директорию вывода. 
+ * Если директории не существует - создаёт её.
+ * Если есть какая-то ошибка - например, на месте директории уже существует файл 
+ * с таким же именем - завершает работу программы с подходящим кодом ошибки. */
 void checkDestinationDirectory(wstring destinationDirectoryPath) noexcept;
-
-// Спрашиваем пользователя, надо ли создавать папку по указанному пути, если создана - возвращает true, иначе false
-bool createDirectoryUserDialog(wstring creatingDirectoryPath) noexcept;
 
 /* Считывает переданный файл оптимальными для чтения чанками (с записью чанков во временный буфер).
 * Каждый считанный чанк в буфере обрезается по границе последней строки, далее во входном файле идёт отступ назад
