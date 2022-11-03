@@ -59,6 +59,11 @@ int randomize(int argc, const char** argv) {
         wcout << "Error: invalid positional arguments count. Maximum allowed one positional argument (path to input file)" << endl;
         return -1;
     }
+
+    if (memoryUsageMaxPercent < 1 or memoryUsageMaxPercent > 100) {
+        cout << "Invalid '--memory' parameter value, it must be lower than 100 and higher than 0" << endl;
+        return ERROR_INVALID_PARAMETER;
+    }
     
 	wstring inputFilePath = toWstring(argv[0]);
     FILE* inputFile = fileOpen(inputFilePath, "rb");
