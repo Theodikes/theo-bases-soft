@@ -12,14 +12,21 @@
 #include <filesystem>
 #include <locale>
 #include <codecvt>
+#include <random>
 #include <dbstl_set.h> // https://docs.oracle.com/cd/E17076_05/html/index.html (Berkeley DB)
 #include "libs/argparse/argparse.h" // https://github.com/cofyc/argparse
 #include "libs/robinhood.h" // https://github.com/martinus/robin-hood-hashing
+#include "libs/xoroshiro.hpp" // https://github.com/Reputeless/Xoshiro-cpp
 #include <Windows.h>
+
+// Объявляем min и max, поскольку они были разыменованы ранее в библиотеке xoroshiro
+#define	min(a, b) (((a) < (b)) ? (a) : (b))
+#define max(a, b) (((a) > (b)) ? (a) : (b))
 
 using namespace std;
 using namespace dbstl; // Неймспейс библиотеки для работы с базой данных
 namespace fs = std::filesystem;
+using namespace XoshiroCpp; // Неймспейс библиотеки для быстрого генератора рандомных чисел
 
 // Оптимальный размер чанка диска (ssd) для записи и чтения за одну операцию (fread/fwrite), вычислено тестированием
 constexpr unsigned OPTIMAL_DISK_CHUNK_SIZE = 1024 * 1024 * 64;
@@ -38,6 +45,10 @@ constexpr unsigned OPTIMAL_DISK_CHUNK_SIZE = 1024 * 1024 * 64;
 /* Строка, которую надо добавлять в начало длинного пути(длиннее MAX_PATH), чтобы
 * система Windows считала его валидным. Например, \\?\C:\Users\Admin\somelooooo......ng */
 #define WIN_LONG_PATH_START LR"(\\?\)"
+
+/* При добавлении этого в конец вызываемой через консоль команды с помощью `system(cmd)`,
+ * весь вывод, генерирующийся во время выполнения команды, будет скрыт и не виден в консоли */
+#define SUPPRESS_CMD_WINDOWS_OUTPUT_END L" > nul"
 
 // Тип для хранилища уникальных хешей (чисел unsigned long long), расположенного в дисковой памяти
 typedef db_set<ull, ElementHolder<ull>> db_hashset;

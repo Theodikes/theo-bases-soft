@@ -9,13 +9,15 @@ int deduplicate(int argc, const char** argv); // Команда для удал�
 int count(int argc, const char** argv); // Команда для подсчёта строк в файле
 // Команда для получения первой либо второй части строк (только пароли или только email/num/pass)
 int tokenize(int argc, const char** argv); 
+// Команда для перемешивания файлов (рандомизации позиций строк в них)
+int randomize(int argc, const char** argv);
 
 struct cmd_struct {
     const char* cmd;
     int (*fn) (int, const char**);
 };
 
-static struct cmd_struct commands[] = {
+struct cmd_struct commands[] = {
     {"n", normalize},
     {"normalize", normalize},
     {"m", merge},
@@ -27,15 +29,18 @@ static struct cmd_struct commands[] = {
     {"c", count},
     {"count", count},
     {"t", tokenize},
-    {"tokenize", tokenize}
+    {"tokenize", tokenize},
+    {"randomize", randomize},
+    {"r", randomize}
 };
 
-static const char* const commandsDescription = "Commands:\n\
+const char* const commandsDescription = "Commands:\n\
             normalize, n    Normalize bases\n\
             merge, m        Merge files\n\
             split, s        Split file by number of lines\n\
             dedup, d        Delete duplicate lines in file\n\
             count, c        Count number of strings in files\n\
-            tokenize, t     Get only passwords or only emails, numbers or logins from file\n";
+            tokenize, t     Get only passwords or only emails, numbers or logins from file\n\
+            randomize, r    Random shuffle strings in file\n";
 
 #endif // !THEO_COMMANDS

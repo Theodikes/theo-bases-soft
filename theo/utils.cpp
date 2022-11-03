@@ -334,8 +334,9 @@ void checkDestinationDirectory(wstring destinationDirectoryPath) noexcept {
 		exit(ERROR_DIRECTORY_NOT_SUPPORTED);
 	}
 
+	error_code _;
 	// Если директории не существует и её невозможно создать, выходим
-	if (not isAnythingExistsByPath(destinationDirectoryPath) and not fs::create_directory(destinationDirectoryPath)) {
+	if (not isAnythingExistsByPath(destinationDirectoryPath) and not fs::create_directory(destinationDirectoryPath, _)) {
 		wcout << "Error: cannot create directory by given path [" << destinationDirectoryPath << "]" << endl;
 		exit(ERROR_DIRECTORY);
 	}
