@@ -38,7 +38,7 @@ int randomize(int argc, const char** argv) {
     struct argparse_option options[] = {
         OPT_HELP(),
         OPT_GROUP("Basic options"),
-        OPT_INTEGER(0, "memory", &memoryUsageMaxPercent, "Maximum percentage of RAM usage. Only number (whout percent symbol).\n\t\t\t      After reaching limit, deduplication continues on disk (default - 90%)"),
+        OPT_INTEGER(0, "memory", &memoryUsageMaxPercent, "Maximum percentage of RAM usage. Only number (whout percent symbol).\n\t\t\t      After reaching limit, shuffling continues on disk (default - 90%)"),
         OPT_GROUP("File options"),
         OPT_STRING('d', "destination", &destinationPath, "absolute or relative path to result file(default: current directory)"),
         OPT_GROUP("Unmarked (positional) argument will be considered as path to input file"),
