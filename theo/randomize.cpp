@@ -11,7 +11,16 @@ static const char* const usages[] = {
 * перемешивались строки из файла, не очищается после завершения функции */
 static int shuffleFileInRAM(FILE* inputFile, FILE* outputFile, ull inputFileSizeInBytes, bool deallocate = true);
 
-static char** getAllStringsFromFile(FILE* inputFile, size_t inputFileSize, size_t* resultStringsCount);
+/* Считывает все строки из файла и сохраняет и возвращает массив, в котором находятся указатели
+ * на все строки (в каждой строке удалён символ переноса строки '\n').
+ * В переменную resultStringsCount после выполнения записывается количество строк в файле - это
+ * так же размер итогового массива.
+ * В переменную fileContentBuf записывается указатель на начало буфера, в котором находятся
+ * все считанные из файла байты, для последующей его очистки */
+static char** getAllStringsFromFile(FILE* inputFile, size_t inputFileSize, size_t* resultStringsCount, char** fileContentBuf);
+
+// Запись всех перемешанных строк из по массиву указателей строк в выходной файл.
+static int writeShuffledStringsToFile(FILE* resultFile, char** allStrings, size_t stringsCount, size_t inputFileSize);
 
 // Перемешивает элементы в массиве случайным образом, изменяя массив внутри функции
 static void randomShuffleArrayInplace(char** array, size_t arrayLength);
@@ -89,7 +98,9 @@ int randomize(int argc, const char** argv) {
      */
     size_t memoryPercentForPointers = static_cast<size_t>(ceil(100 / AVERAGE_STRING_LEGTH_IN_FILE * sizeof(char*)));
     ull memoryForPointers = inputFileSizeInBytes / 100 * memoryPercentForPointers;
-    ull memoryInBytesToStoreAllInputFileStrings = inputFileSizeInBytes + memoryForPointers;
+    /* Умножаем размер файла на два, поскольку будет храниться две копии всего файла:
+     * во входном буфере и в итоговом буфере, для быстрого считывания и записи */
+    ull memoryInBytesToStoreAllInputFileStrings = inputFileSizeInBytes * 2 + memoryForPointers;
     ull availableMemoryInBytes = getAvailableMemoryInBytes();
     ull totalMemoryInBytes = getTotalMemoryInBytes();
 
@@ -120,7 +131,10 @@ int randomize(int argc, const char** argv) {
         * поскольку деаллоцировать массив не надо - память сама очистится после завершения 
         * программы, а ручная деаллокация занимает очень много времени (почти 50% от общего) */
         int retCode = shuffleFileInRAM(inputFile, resultFile, inputFileSizeInBytes, false);
-        if (retCode != ERROR_SUCCESS) fs::remove(destinationFilePath);
+        if (retCode != ERROR_SUCCESS) {
+            fs::remove(destinationFilePath);
+            exit(retCode);
+        }
     }
     else {
         /* Количество частей, на которые надо разделить файл, чтобы каждая часть
@@ -242,56 +256,111 @@ static wstring splitInputFileIntoTemporaryDirectory(const wstring& inputFilePath
     return tempDirectoryPath;
 }
 
-static char** getAllStringsFromFile(FILE* inputFile, size_t inputFileSize, size_t* resultStringsCount) {
-    /* Считаем, что в одной строке примерно 20 символов, поэтому количество строк равно
-    * количеству байт (символов) в файле, поделённому на 20 */
-    size_t expectedStringsCount = inputFileSize / 20;
-    char** allStrings = (char**)malloc((expectedStringsCount + 1) * sizeof(char*));
-    size_t maxStringLength = min(OPTIMAL_DISK_CHUNK_SIZE, inputFileSize);
-    char* tempBuf = new char[maxStringLength + 1];
-    size_t currentStringNumber = 0;
-    auto cleanup = [&]() {
-        delete[] tempBuf;
-        freeStringsArray(allStrings, currentStringNumber);
-    };
-    while (not feof(inputFile)) {
-        char* tempString = fgets(tempBuf, maxStringLength, inputFile);
-        if (tempString == NULL) {
-            if (feof(inputFile)) break;
-            cleanup();
-            return NULL;
-        }
-        size_t stringLength = strlen(tempString);
-
-        // Удалем все переносы строки и пробелы с конца строки, оставляя только \n
-        for (size_t i = stringLength - 1; isspace(tempString[stringLength - 1]) and stringLength > 1; i--) stringLength--;
-        tempString[stringLength++] = '\n';
-        tempString[stringLength] = '\0';
-
-        char* string = (char*) malloc((stringLength + 1) * sizeof(char));
-        if (string == NULL) {
-            wcout << "Error: not enough memory. Cannot allocate place for string in RAM" << endl;
-            cleanup();
-            return NULL;
-        }
-        memcpy(string, tempString, stringLength + 1);
-        if (currentStringNumber > expectedStringsCount) {
-            size_t newExpectedStringsCount = (size_t) ceil(expectedStringsCount * 1.5);
-            char** reallocated = (char**)realloc(allStrings, (newExpectedStringsCount + 1) * sizeof(char*));
-            if (reallocated == NULL) {
-                cleanup();
-                return NULL;
-            }
-            allStrings = reallocated;
-            expectedStringsCount = newExpectedStringsCount;
-
-        }
-        allStrings[currentStringNumber++] = string;
+static char** getAllStringsFromFile(FILE* inputFile, size_t inputFileSize, size_t* resultStringsCount, char** fileContentBuf) {
+    // Выделяем буфер под хранение всех байтов из входного файла
+    char* allFileContent = new char[inputFileSize + 1];
+    if (allFileContent == NULL) {
+        wcout << "Error: not menough memory, cannot allocate buffer to store strings from input file";
+        return NULL;
+    }
+    // Пытаемся считать весь входной файл в выделенный выше буфер за один раз
+    size_t bytesReaded = fread(allFileContent, sizeof(char), inputFileSize, inputFile);
+    if (bytesReaded != inputFileSize) {
+        wcout << "Cannot read all input file" << endl;
+        return NULL;
     }
 
-    delete[] tempBuf;
+    // Примерное ожидаемое число строк в файле - размер файла, делённый на среднюю длину строки
+    size_t expectedStringsCount = inputFileSize / AVERAGE_STRING_LEGTH_IN_FILE;
+    /* Создаем массив указателей на строки, каждый элемент будет указателем на начало новой
+     * строки в буфере, где находится полностью считанный файл */
+    char** allStrings = (char**)malloc((expectedStringsCount + 1) * sizeof(char*));
+
+    size_t currentStringNumber = 0;
+    for (size_t pos = 0; pos < inputFileSize; pos++) {
+        /* Добавляем указатель на начало строки в итоговый массив строк. Началом строки символ
+         * считается в том случае, если он либо первый во всем буфере (входном файле), либо если
+         * перед ним символ конца предыдущей строки */
+        if (pos == 0 or allFileContent[pos - 1] == '\0') {
+            /* Если в файле много коротких строк, может случиться такое, что строк будет больше,
+             * чем ожидалось заранее, и в массив новые не влезут. В таком случае требуется
+             * реаллоцировать массив, увеличив его вместительность ровно на половину от текущего
+             * размера */
+            if (currentStringNumber >= expectedStringsCount) {
+                size_t newExpectedStringsCount = (size_t)ceil(expectedStringsCount * 1.5);
+                char** reallocated = (char**)realloc(allStrings, (newExpectedStringsCount + 1) * sizeof(char*));
+                if (reallocated == NULL) {
+                    wcout << "Error: cannot allocate more memory to store short strings from input file" << endl;
+                    delete[] allFileContent;
+                    free(allStrings);
+                    return NULL;
+                }
+                allStrings = reallocated;
+                expectedStringsCount = newExpectedStringsCount;
+            }
+            /* Добавляем указатель на начало текущей строки в буфере, в котором находятся
+             * все байты из входного файла */
+            allStrings[currentStringNumber++] = &allFileContent[pos];
+        }
+        /* Заменяем символ переноса строки на символ конца строки, чтобы следующий символ
+         * был расценён как начало следующей строки. Не добавляем следующий символ
+         * как начало следующей строки сразу же, чтобы не делать лишних проверок
+         * на то, не конец ли это буфера, и чтобы корректно обработать начало первой строки
+         * во всём файле */
+        if (allFileContent[pos] == '\n') allFileContent[pos] = '\0';
+    }
+    /* Добавляем в конец буфера с содержимым файла, то есть, в конец последней считанной строки,
+    * символ завершения строки, если она не оканчивалась переносом строки и он не был установлен
+    * ранее, при удалении символа переноса */
+    if (allFileContent[inputFileSize - 1] != '\0') allFileContent[bytesReaded] = '\0';
+    
+    // Возврат значений путем присваивания их по указателям, переданным в функцию
+    *fileContentBuf = allFileContent;
     *resultStringsCount = currentStringNumber;
     return allStrings;
+}
+
+static int writeShuffledStringsToFile(FILE* resultFile, char** allStrings, size_t stringsCount, size_t inputFileSize) {
+    /* Размер inputFileSize, поскольку после перемешивания весь контент 
+     * из входного файла должен оказаться в итоговом, ничего добавляться или удаляться не будет */
+    char* resultBuffer = new char[inputFileSize + 2];
+    if (resultBuffer == NULL) {
+        cout << "Error: not enough memory to allocate buffer to write shuffled strings to result file" << endl;
+        return ERROR_NOT_ENOUGH_MEMORY;
+    }
+
+    // Пробегаемся по всему массиву перемешанными строками и записываем их в итоговый буфер
+    size_t currentPosInBuffer = 0;
+    for (size_t stringNumber = 0; stringNumber < stringsCount; stringNumber++) {
+        size_t len = strlen(allStrings[stringNumber]);
+        memcpy(&resultBuffer[currentPosInBuffer], allStrings[stringNumber], len);
+        currentPosInBuffer += len;
+        /* В конце каждой строки вместо символа завершения строки вставляем символ
+         * переноса строки, так как эти символы были удалены при считывании буфера
+         * из входного файла и разбиении его на строки */
+        resultBuffer[currentPosInBuffer++] = '\n';
+    }
+
+    /* Проверяем длину выходного файла.В нормальных обстоятельствах длина должна либо
+     * совпадать с длиной входного файла, либо быть больше на 1, поскольку
+     * в конец последней строки всегда добавляется '\n', даже если его там не было
+     * во входном файле */
+    if (currentPosInBuffer != inputFileSize and currentPosInBuffer != inputFileSize + 1) {
+        cout << "Error: wrong output buffer length" << endl;
+        delete[] resultBuffer;
+        return ERROR_NDIS_INVALID_LENGTH;
+    }
+
+    size_t bytesWrited = fwrite(resultBuffer, sizeof(char), currentPosInBuffer, resultFile);
+    if (bytesWrited != currentPosInBuffer) {
+        cout << "Error: cannot write all shuffled strings to result file, write failure" << endl;
+        delete[] resultBuffer;
+        return ERROR_WRITE_FAULT;
+    }
+
+    delete[] resultBuffer;
+    
+    return ERROR_SUCCESS;
 }
 
 
@@ -308,14 +377,22 @@ static void randomShuffleArrayInplace(char** array, size_t arrayLength) {
 
 
 static int shuffleFileInRAM(FILE* inputFile, FILE* outputFile, ull inputFileSize, bool deallocate) {
+    // Указатель на массив со всеми байтами из входного файла, хранит все строки
+    char* allFileContent = NULL; 
+    // Массив указателей на строки (на начало каждой строки строк) в allFileContent
+    char** allStrings = NULL;
+    // Количество строк в массиве allStrings и, соответственно, во входном файле
+    size_t stringsInFileCount = 0;
+
     // Закрываем входной и итоговый файл даже в случае неуспешного выполнения функции
     auto cleanup = [&]() {
         fclose(inputFile);
         fclose(outputFile);
+        if (allFileContent != NULL) free(allFileContent);
+        if (allStrings != NULL) free(allStrings);
     };
 
-    size_t stringsInFileCount = 0;
-    char** allStrings = getAllStringsFromFile(inputFile, inputFileSize, &stringsInFileCount);
+    allStrings = getAllStringsFromFile(inputFile, inputFileSize, &stringsInFileCount, &allFileContent);
     if (allStrings == NULL) {
         cout << "Error: cannot read all strings from file and store it in array" << endl;
         cleanup();
@@ -324,11 +401,12 @@ static int shuffleFileInRAM(FILE* inputFile, FILE* outputFile, ull inputFileSize
 
     randomShuffleArrayInplace(allStrings, stringsInFileCount);
 
-    for (size_t stringNumber = 0; stringNumber < stringsInFileCount; stringNumber++) {
-        fputs(allStrings[stringNumber], outputFile);
+    int retCode = writeShuffledStringsToFile(outputFile, allStrings, stringsInFileCount, inputFileSize);
+    if (retCode != ERROR_SUCCESS) {
+        cleanup();
+        return retCode;
     }
 
-    if(deallocate) freeStringsArray(allStrings, stringsInFileCount);
     cleanup();
 
     return ERROR_SUCCESS;
