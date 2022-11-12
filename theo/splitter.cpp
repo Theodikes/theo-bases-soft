@@ -16,7 +16,7 @@ static const char* const usages[] = {
 
 int split(int argc, const char** argv) {
 	const char* destinationDirectoryPath = ".";
-	int linesInOneResultFile = 0;
+	long long linesInOneResultFile = 0;
 	int parts = 0;
 
 	struct argparse_option options[] = {
@@ -96,7 +96,7 @@ int split(int argc, const char** argv) {
 		 * если поделилось неровно, в последнем итоговом файле должно быть просто меньше строк,
 		 * чем в остальных, и общее число итоговых файлов должно быть ровно заданное пользователем
 		 */
-		linesInOneResultFile = static_cast<int>(ceil(linesInInputFileCount / (double)parts));
+		linesInOneResultFile = static_cast<long long>(ceil(linesInInputFileCount / (double)parts));
 	}
 
 	/* Количество строк, которое должно быть в каждом файле после разделения. Создается дополнительная переменная,
